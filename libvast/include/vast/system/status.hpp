@@ -15,8 +15,8 @@
 #include "vast/logger.hpp"
 #include "vast/system/actors.hpp"
 
-#include <caf/duration.hpp>
 #include <caf/settings.hpp>
+#include <caf/timespan.hpp>
 #include <caf/typed_response_promise.hpp>
 
 namespace vast::system {
@@ -104,11 +104,11 @@ void collect_status(
   std::chrono::milliseconds timeout, status_verbosity verbosity, Resp responder,
   F&& f, Fe&& fe) {
   // The overload for 'request(...)' taking a 'std::chrono::duration' does not
-  // respect the specified message priority, so we convert to 'caf::duration' by
+  // respect the specified message priority, so we convert to 'caf::timespan' by
   // hand.
   rs->self
     ->template request<caf::message_priority::high>(
-      responder, caf::duration{timeout}, atom::status_v, verbosity)
+      responder, caf::timespan{timeout}, atom::status_v, verbosity)
     .then(
       [rs, f = std::forward<F>(f)](record& response) mutable {
         f(response);

@@ -28,6 +28,7 @@
 #include "vast/table_slice.hpp"
 #include "vast/type_set.hpp"
 
+#include <caf/attach_continuous_stream_source.hpp>
 #include <caf/downstream.hpp>
 #include <caf/event_based_actor.hpp>
 #include <caf/scoped_actor.hpp>
@@ -68,8 +69,7 @@ void source_state::initialize(const type_registry_actor& type_registry,
               if (caf::holds_alternative<record_type>(type))
                 merged_module.add(type);
           // Third, try to set the new module.
-          if (auto err = reader->module(std::move(merged_module));
-              err && err != caf::no_error)
+          if (auto err = reader->module(std::move(merged_module)))
             VAST_ERROR("{} source failed to set schema: {}", reader->name(),
                        err);
         },
@@ -83,8 +83,7 @@ void source_state::initialize(const type_registry_actor& type_registry,
     VAST_WARN("{} source failed to retrieve registered types and only "
               "considers types local to the import command",
               reader->name());
-    if (auto err = reader->module(std::move(local_module));
-        err && err != caf::no_error)
+    if (auto err = reader->module(std::move(local_module)))
       VAST_ERROR("{} source failed to set schema: {}", reader->name(), err);
   }
 }
@@ -193,7 +192,8 @@ source(caf::stateful_actor<source_state>* self, format::reader_ptr reader,
     self->quit(msg.reason);
   });
   // Spin up the stream manager for the source.
-  self->state.mgr = self->make_continuous_source(
+  self->state.mgr = caf::attach_continuous_stream_source(
+    self,
     // init
     [self](caf::unit_t&) {
       caf::timestamp now = std::chrono::system_clock::now();
@@ -304,8 +304,7 @@ source(caf::stateful_actor<source_state>* self, format::reader_ptr reader,
     },
     [self](atom::put, class module module) -> caf::result<void> {
       VAST_DEBUG("{} received schema {}", *self, module);
-      if (auto err = self->state.reader->module(std::move(module));
-          err && err != caf::no_error)
+      if (auto err = self->state.reader->module(std::move(module)))
         return err;
       return caf::unit;
     },

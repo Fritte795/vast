@@ -417,41 +417,40 @@ caf::error read(const std::filesystem::path& filename, chunk_ptr& x) {
   return caf::none;
 }
 
-caf::error inspect(caf::serializer& sink, const chunk_ptr& x) {
+bool inspect(caf::serializer& sink, const chunk_ptr& x) {
   using vast::detail::narrow;
   if (x == nullptr)
-    return sink(invalid_chunk_size);
-  return caf::error::eval(
-    [&] {
-      return sink(narrow<int64_t>(x->size()));
-    },
-    [&] {
-      return sink.apply_raw(x->size(), const_cast<std::byte*>(x->data()));
-    });
+    return sink.apply(invalid_chunk_size);
+  // return sink(invalid_chunk_size);
+  if (!sink.apply(narrow<int64_t>(x->size())))
+    return sink.list(*x);
+  return true;
 }
 
-caf::error inspect(caf::deserializer& source, chunk_ptr& x) {
+bool inspect(caf::deserializer& source, chunk_ptr& x) {
   int64_t size = 0;
-  if (auto err = source(size))
-    return err;
+  if (!source.apply(size))
+    return false;
   if (size == invalid_chunk_size) {
     x = nullptr;
-    return caf::none;
+    return true;
   }
   if (size == 0) {
     x = chunk::make_empty();
-    return caf::none;
+    return true;
   }
-  auto buffer = std::make_unique<chunk::value_type[]>(size);
-  const auto data = buffer.get();
-  if (auto err = source.apply_raw(size, data)) {
+  // auto buffer = std::make_unique<chunk::value_type[]>(size);
+  // const auto data = buffer.get();
+  std::vector<std::byte> data;
+  data.reserve(size);
+  if (!source.apply(data)) {
     x = nullptr;
-    return err;
+    return false;
   }
-  x = chunk::make(data, size, [buffer = std::move(buffer)]() noexcept {
+  x = chunk::make(data.data(), size, [buffer = std::move(data)]() noexcept {
     static_cast<void>(buffer);
   });
-  return caf::none;
+  return true;
 }
 
 bool inspect(detail::legacy_deserializer& source, chunk_ptr& x) {

@@ -16,28 +16,252 @@
 #include <caf/detail/ieee_754.hpp>
 #include <caf/detail/network_order.hpp>
 #include <caf/detail/type_traits.hpp>
-#include <caf/detail/uri_impl.hpp>
-#include <caf/error.hpp>
+// #include <caf/detail/uri_impl.hpp>
 #include <caf/expected.hpp>
-#include <caf/meta/load_callback.hpp>
+#include <caf/load_inspector.hpp>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <iterator>
 #include <optional>
 #include <span>
 #include <type_traits>
 #include <vector>
 
+namespace caf::legacy {
+template <class Inspector, class T>
+class is_inspectable {
+private:
+  template <class U>
+  static auto sfinae(Inspector& x, U& y) -> decltype(inspect(x, y));
+
+  static std::false_type sfinae(Inspector&, ...);
+
+  using result_type
+    = decltype(sfinae(std::declval<Inspector&>(), std::declval<T&>()));
+
+public:
+  static constexpr bool value
+    = !std::is_same<result_type, std::false_type>::value;
+};
+
+template <class Inspector, class T>
+struct is_inspectable<Inspector, T*> : std::false_type {};
+
+/// Checks whether `T` provides either a free function or a member function for
+/// serialization. The checks test whether both serialization and
+/// deserialization can succeed. The meta function tests the following
+/// functions with `Processor` being both `serializer` and `deserializer` and
+/// returns an integral constant if and only if the test succeeds for both.
+///
+/// - `serialize(Processor&, T&, const unsigned int)`
+/// - `serialize(Processor&, T&)`
+/// - `T::serialize(Processor&, const unsigned int)`.
+/// - `T::serialize(Processor&)`.
+template <class T, bool Ignore
+                   = std::is_pointer<T>::value || std::is_function<T>::value>
+struct has_serialize {
+  template <class U>
+  static auto test_serialize(caf::serializer* sink, U* x, unsigned int y = 0)
+    -> decltype(serialize(*sink, *x, y));
+
+  template <class U>
+  static auto test_serialize(caf::serializer* sink, U* x)
+    -> decltype(serialize(*sink, *x));
+
+  template <class>
+  static auto test_serialize(...) -> std::false_type;
+
+  template <class U>
+  static auto
+  test_deserialize(caf::deserializer* source, U* x, unsigned int y = 0)
+    -> decltype(serialize(*source, *x, y));
+
+  template <class U>
+  static auto test_deserialize(caf::deserializer* source, U* x)
+    -> decltype(serialize(*source, *x));
+
+  template <class>
+  static auto test_deserialize(...) -> std::false_type;
+
+  using serialize_type = decltype(test_serialize<T>(nullptr, nullptr));
+  using deserialize_type = decltype(test_deserialize<T>(nullptr, nullptr));
+  using type
+    = std::integral_constant<bool,
+                             std::is_same<serialize_type, void>::value
+                               && std::is_same<deserialize_type, void>::value>;
+
+  static constexpr bool value = type::value;
+};
+
+template <class T>
+struct has_serialize<T, true> {
+  static constexpr bool value = false;
+};
+
+/// Any inspectable type is considered to be serializable.
+template <class T>
+struct is_serializable;
+
+template <class T, bool IsIterable = caf::detail::is_iterable<T>::value,
+          bool Ignore = std::is_pointer<T>::value || std::is_function<T>::value>
+struct is_serializable_impl;
+
+template <class T>
+struct is_builtin {
+  static constexpr bool value
+    = std::is_arithmetic<T>::value || caf::detail::is_duration<T>::value
+      || caf::detail::is_one_of<T, timestamp, std::string, std::u16string,
+                                std::u32string, message, actor, group,
+                                node_id>::value;
+};
+
+/// Checks whether `T` is builtin or provides a `serialize`
+/// (free or member) function.
+template <class T>
+struct is_serializable_impl<T, false, false> {
+  static constexpr bool value = has_serialize<T>::value
+                                || is_inspectable<serializer, T>::value
+                                || is_builtin<T>::value;
+};
+
+template <class Rep, class Period>
+struct is_serializable_impl<std::chrono::duration<Rep, Period>, false, false> {
+  static constexpr bool value = is_serializable<Rep>::value;
+};
+
+template <class Clock, class Duration>
+struct is_serializable_impl<std::chrono::time_point<Clock, Duration>, false,
+                            false> {
+  static constexpr bool value = is_serializable<Duration>::value;
+};
+
+template <class F, class S>
+struct is_serializable_impl<std::pair<F, S>, false, false> {
+  static constexpr bool value
+    = is_serializable<F>::value && is_serializable<S>::value;
+};
+
+template <class... Ts>
+struct is_serializable_impl<std::tuple<Ts...>, false, false> {
+  static constexpr bool value
+    = std::conjunction_v<is_serializable<Ts>::value...>;
+};
+
+template <class T>
+struct is_serializable_impl<T, true, false> {
+  using value_type = typename T::value_type;
+  static constexpr bool value = is_serializable<value_type>::value;
+};
+
+template <class T, size_t S>
+struct is_serializable_impl<T[S], false, false> {
+  static constexpr bool value = is_serializable<T>::value;
+};
+
+template <class T, bool IsIterable>
+struct is_serializable_impl<T, IsIterable, true> {
+  static constexpr bool value = false;
+};
+
+/// Checks whether `T` is builtin or provides a `serialize`
+/// (free or member) function.
+template <class T>
+struct is_serializable {
+  static constexpr bool value
+    = is_serializable_impl<T>::value || is_inspectable<serializer, T>::value
+      || std::is_empty<T>::value || std::is_enum<T>::value;
+};
+
+template <>
+struct is_serializable<bool> : std::true_type {
+  // nop
+};
+
+template <class T>
+struct is_serializable<T&> : is_serializable<T> {
+  // nop
+};
+
+template <class T>
+struct is_serializable<const T> : is_serializable<T> {
+  // nop
+};
+
+template <class T>
+struct is_serializable<const T&> : is_serializable<T> {
+  // nop
+};
+} // namespace caf::legacy
+
 namespace vast::detail {
+
+template <class T>
+struct is_byte_sequence : std::false_type {};
+
+template <>
+struct is_byte_sequence<std::vector<char>> : std::true_type {};
+
+template <>
+struct is_byte_sequence<std::vector<unsigned char>> : std::true_type {};
+
+template <>
+struct is_byte_sequence<std::string> : std::true_type {};
+
+template <int, bool>
+struct select_integer_type;
+
+template <>
+struct select_integer_type<1, true> {
+  using type = int8_t;
+};
+
+template <>
+struct select_integer_type<1, false> {
+  using type = uint8_t;
+};
+
+template <>
+struct select_integer_type<2, true> {
+  using type = int16_t;
+};
+
+template <>
+struct select_integer_type<2, false> {
+  using type = uint16_t;
+};
+
+template <>
+struct select_integer_type<4, true> {
+  using type = int32_t;
+};
+
+template <>
+struct select_integer_type<4, false> {
+  using type = uint32_t;
+};
+
+template <>
+struct select_integer_type<8, true> {
+  using type = int64_t;
+};
+
+template <>
+struct select_integer_type<8, false> {
+  using type = uint64_t;
+};
+
+template <int Size, bool IsSigned>
+using select_integer_type_t =
+  typename select_integer_type<Size, IsSigned>::type;
 
 /// An inspector for CAF inspect
 class legacy_deserializer {
 public:
-  static constexpr bool reads_state = false;
-  static constexpr bool writes_state = true;
+  static constexpr bool is_loading = false;
   using result_type = bool;
 
   explicit legacy_deserializer(std::span<const std::byte> bytes)
@@ -49,6 +273,16 @@ public:
     return (apply(xs) && ...);
   }
 
+  template <class T>
+  auto object(const T&) {
+    return object_impl{*this};
+  }
+
+  template <class T>
+  auto field(std::string_view, T& value) {
+    return field_impl{value};
+  }
+
   inline result_type apply_raw(size_t num_bytes, void* storage) {
     if (num_bytes > bytes_.size())
       return false;
@@ -57,26 +291,15 @@ public:
     return true;
   }
 
-private:
   template <class T>
-    requires(caf::detail::is_inspectable<legacy_deserializer, T>::value)
+    requires(caf::legacy::is_inspectable<legacy_deserializer, T>::value)
   result_type apply(T& x) {
     return inspect(*this, x);
   }
 
-  template <class T>
-    requires(caf::meta::is_annotation<T>::value
-             && !caf::meta::is_load_callback<T>::value)
-  result_type apply(T&) {
-    // annotations are skipped
-    return true;
-  }
-
-  template <class T>
-    requires(caf::meta::is_load_callback<T>::value)
-  result_type apply(T& x) {
-    auto err = x.fun();
-    return static_cast<bool>(err == caf::none);
+  // todo accept generic callback
+  result_type apply(std::function<bool()> x) {
+    return x();
   }
 
   template <class T>
@@ -91,9 +314,10 @@ private:
   }
 
   template <class F, class S>
+    // todo some msg?
     requires(
-      caf::detail::is_serializable<typename std::remove_const_t<F>>::value&&
-        caf::detail::is_serializable<S>::value)
+      caf::legacy::is_serializable<typename std::remove_const_t<F>>::value&&
+        caf::legacy::is_serializable<S>::value)
   result_type apply(std::pair<F, S>& xs) {
     using t0 = typename std::remove_const_t<F>;
     if (!apply(const_cast<t0&>(xs.first)))
@@ -101,13 +325,13 @@ private:
     return apply(xs.second);
   }
 
-  inline result_type apply(caf::uri& x) {
-    auto impl = caf::make_counted<caf::detail::uri_impl>();
-    if (!apply(*impl))
-      return false;
-    x = caf::uri{std::move(impl)};
-    return true;
-  }
+  // inline result_type apply(caf::uri& x) {
+  //   auto impl = caf::make_counted<caf::detail::uri_impl>();
+  //   if (!apply(*impl))
+  //     return false;
+  //   x = caf::uri{std::move(impl)};
+  //   return true;
+  // }
 
   inline result_type apply(bool& x) {
     uint8_t tmp = 0;
@@ -152,8 +376,7 @@ private:
   template <class T>
     requires(std::is_integral_v<T> && !std::is_same_v<bool, T>)
   result_type apply(T& x) {
-    using type
-      = caf::detail::select_integer_type_t<sizeof(T), std::is_signed_v<T>>;
+    using type = detail::select_integer_type_t<sizeof(T), std::is_signed_v<T>>;
     return apply(reinterpret_cast<type&>(x));
   }
 
@@ -217,7 +440,7 @@ private:
 
   template <class T>
     requires(caf::detail::is_iterable<T>::value
-             && !caf::detail::is_inspectable<legacy_deserializer, T>::value)
+             && !caf::legacy::is_inspectable<legacy_deserializer, T&>::value)
   result_type apply(T& xs) {
     return apply_sequence(xs);
   }
@@ -232,7 +455,7 @@ private:
   }
 
   template <class T>
-    requires(!caf::detail::is_byte_sequence<T>::value)
+    requires(!detail::is_byte_sequence<T>::value)
   result_type apply_sequence(T& xs) {
     size_t size = 0;
     if (!begin_sequence(size))
@@ -255,6 +478,48 @@ private:
         return false;
     return true;
   }
+
+private:
+  class object_impl {
+  public:
+    explicit object_impl(legacy_deserializer& self) : self_{self} {
+    }
+
+    template <class... Fields>
+    bool fields(Fields&&... fields) {
+      auto success = (fields(self_) && ...);
+      if (success && load_callback_)
+        success = load_callback_();
+      return success;
+    }
+
+    object_impl& pretty_name(std::string_view) {
+      return *this;
+    }
+
+    template <class Callback>
+    object_impl& on_load(Callback callback) {
+      load_callback_ = std::move(callback);
+      return *this;
+    }
+
+  private:
+    legacy_deserializer& self_;
+    std::function<bool()> load_callback_;
+  };
+
+  template <class T>
+  class field_impl {
+  public:
+    explicit field_impl(T& value) : value_{value} {
+    }
+    bool operator()(legacy_deserializer& f) {
+      return f.apply(value_);
+    }
+
+  private:
+    T& value_;
+  };
 
   inline result_type begin_sequence(size_t& list_size) {
     // Use varbyte encoding to compress sequence size on the wire.

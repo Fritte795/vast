@@ -537,26 +537,27 @@ void render_error(const command& root, const caf::error& err,
     // The user most likely killed the process via CTRL+C, print nothing.
     return;
   os << render(err) << '\n';
-  if (err.category() == caf::atom("vast")) {
-    auto x = static_cast<vast::ec>(err.code());
-    switch (x) {
-      default:
-        break;
-      case ec::invalid_subcommand:
-      case ec::missing_subcommand:
-      case ec::unrecognized_option: {
-        auto ctx = err.context();
-        if (ctx.match_element<std::string>(1)) {
-          auto name = ctx.get_as<std::string>(1);
-          if (auto cmd = resolve(root, name))
-            helptext(*cmd, os);
-        } else {
-          VAST_ASSERT(!"User visible error contexts must consist of strings!");
-        }
-        break;
-      }
-    }
-  }
+  // if (err.category() == caf::atom("vast")) {
+  //   auto x = static_cast<vast::ec>(err.code());
+  //   switch (x) {
+  //     default:
+  //       break;
+  //     case ec::invalid_subcommand:
+  //     case ec::missing_subcommand:
+  //     case ec::unrecognized_option: {
+  //       auto ctx = err.context();
+  //       if (ctx.match_element<std::string>(1)) {
+  //         auto name = ctx.get_as<std::string>(1);
+  //         if (auto cmd = resolve(root, name))
+  //           helptext(*cmd, os);
+  //       } else {
+  //         VAST_ASSERT(!"User visible error contexts must consist of
+  //         strings!");
+  //       }
+  //       break;
+  //     }
+  //   }
+  // }
 }
 
 command::opts_builder opts(std::string_view category) {

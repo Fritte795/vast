@@ -133,14 +133,17 @@ make_pipelines(pipelines_location location, const caf::settings& settings) {
     if (!name)
       return caf::make_error(ec::invalid_configuration, "pipeline name must "
                                                         "be a string");
-    auto events = caf::get_if<std::vector<std::string>>(&(*pipeline)["events"]);
-    if (!events)
-      return caf::make_error(ec::invalid_configuration,
-                             "pipeline event types must be a list of strings");
+
+    // auto events =
+    // caf::get_if<std::vector<std::string>>(&(*pipeline)["events"]); if
+    // (!events)
+    //   return caf::make_error(ec::invalid_configuration,
+    //                          "pipeline event types must be a list of
+    //                          strings");
     auto server_pipeline = *location == "server";
     if (server != server_pipeline)
       continue;
-    pipeline_triggers.emplace_back(*name, *events);
+    // pipeline_triggers.emplace_back(*name, *events);
   }
   if (pipeline_triggers.empty()) {
     return result;

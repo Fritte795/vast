@@ -94,7 +94,6 @@ constexpr size_t max_events_context = 100;
 // for disambiguation.
 
 namespace export_ {
-
 /// Path for reading reading the query or `-` for reading from STDIN.
 constexpr std::string_view read = "-";
 

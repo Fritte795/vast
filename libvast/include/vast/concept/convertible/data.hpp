@@ -93,16 +93,13 @@ template <class... Args>
 prepend(caf::error&& in, const char* fstring, Args&&... args) {
   if (in) {
     auto f = fmt::format("{}{{}}", fstring);
-    auto new_msg = in.context().apply({
-      [&](std::string& s) {
-        return caf::make_message(fmt::format(
-          VAST_FMT_RUNTIME(f), std::forward<Args>(args)..., std::move(s)));
-      },
-    });
+    auto new_msg = caf::make_message(fmt::format(VAST_FMT_RUNTIME(f),
+                                                 std::forward<Args>(args)...,
+                                                 to_string(in.context())));
     if (new_msg)
-      in.context() = std::move(*new_msg);
-    else
-      in.context() = caf::make_message(
+      const_cast<caf::message&>(in.context()) = std::move(new_msg);
+    else // TODO ASK TOBIAS
+      const_cast<caf::message&>(in.context()) = caf::make_message(
         fmt::format(VAST_FMT_RUNTIME(fstring), std::forward<Args>(args)...));
   }
   return std::move(in);
@@ -145,9 +142,129 @@ concept has_layout = requires {
   noexcept->concepts::sameish<record_type>;
 };
 
+class record_inspector {
+public:
+  template <class To>
+  bool apply(const record_type::field_view& field, To& dst) {
+    auto f = detail::overload{
+      [&]<concrete_type Type>(const caf::none_t&, const Type&) -> caf::error {
+        // If the data is nil then we leave the value untouched.
+        return caf::none;
+      },
+      [&]<class Data, concrete_type Type>(const Data& d,
+                                          const Type& t) -> caf::error {
+        if constexpr (IS_TYPED_CONVERTIBLE(d, dst, t)) {
+          return convert(d, dst, t);
+        } else if constexpr (IS_UNTYPED_CONVERTIBLE(d, dst)) {
+          return convert(d, dst);
+        } else {
+          return caf::make_error(ec::convert_error,
+                                 fmt::format("failed to find conversion "
+                                             "operation for value {} of "
+                                             "type {} to {}",
+                                             data{d}, t,
+                                             detail::pretty_type_name(dst)));
+        }
+      },
+    };
+    // Find the value from the record
+    auto it = src.find(field.name);
+    const auto& value = it != src.end() ? it->second : data{};
+    if (!field.type && caf::holds_alternative<caf::none_t>(value)) {
+      VAST_WARN("failed to convert field {} because it has no type", field);
+      return false;
+    }
+
+    if (field.type) {
+      auto err = caf::visit(f, value, field.type);
+      if (err) {
+        VAST_WARN("{}", err);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  template <class... Ts>
+  caf::error operator()(Ts&&... xs) {
+    auto rng = layout.fields();
+    auto it = rng.begin();
+    return caf::error::eval([&]() -> caf::error {
+      auto result = apply(*it, xs);
+      ++it;
+      return result;
+    }...);
+  }
+
+  template <class T>
+  bool apply(T& x) {
+    auto rng = layout.fields();
+    auto it = rng.begin();
+    auto result = apply(*it, x);
+    ++it;
+    return result;
+  }
+
+  class object_impl {
+  public:
+    explicit object_impl(record_inspector& self) : self_{self} {
+    }
+
+    template <class... Fields>
+    bool fields(Fields&&... fields) {
+      auto success = (fields(self_) && ...);
+      if (success && load_callback_)
+        success = load_callback_();
+      return success;
+    }
+
+    object_impl& pretty_name(std::string_view) {
+      return *this;
+    }
+
+    template <class Callback>
+    object_impl& on_load(Callback callback) {
+      load_callback_ = std::move(callback);
+      return *this;
+    }
+
+  private:
+    record_inspector& self_;
+    std::function<bool()> load_callback_;
+  };
+
+  template <class T>
+  class field_impl {
+  public:
+    explicit field_impl(T& value) : value_{value} {
+    }
+    bool operator()(record_inspector& f) {
+      return f.apply(value_);
+    }
+
+  private:
+    T& value_;
+  };
+
+  template <class T>
+  auto field(std::string_view, T& value) {
+    return field_impl{value};
+  }
+
+  template <class T>
+  auto object(const T&) {
+    return object_impl{*this};
+  }
+
+  const record_type& layout;
+  const record& src;
+};
+
 // Overload for records.
-template <concepts::inspectable To>
-caf::error convert(const record& src, To& dst, const record_type& layout);
+caf::error
+convert(const record& src, concepts::inspectable<record_inspector> auto& dst,
+        const record_type& layout);
 
 template <has_layout To>
 caf::error convert(const record& src, To& dst);
@@ -478,67 +595,18 @@ caf::error convert(const list& src, To& dst, const map_type& t) {
   return caf::none;
 }
 
-class record_inspector {
-public:
-  using result_type = caf::error;
-
-  template <class To>
-  caf::error apply(const record_type::field_view& field, To& dst) {
-    auto f = detail::overload{
-      [&]<concrete_type Type>(const caf::none_t&, const Type&) -> caf::error {
-        // If the data is nil then we leave the value untouched.
-        return caf::none;
-      },
-      [&]<class Data, concrete_type Type>(const Data& d,
-                                          const Type& t) -> caf::error {
-        if constexpr (IS_TYPED_CONVERTIBLE(d, dst, t)) {
-          return convert(d, dst, t);
-        } else if constexpr (IS_UNTYPED_CONVERTIBLE(d, dst)) {
-          return convert(d, dst);
-        } else {
-          return caf::make_error(ec::convert_error,
-                                 fmt::format("failed to find conversion "
-                                             "operation for value {} of "
-                                             "type {} to {}",
-                                             data{d}, t,
-                                             detail::pretty_type_name(dst)));
-        }
-      },
-    };
-    // Find the value from the record
-    auto it = src.find(field.name);
-    const auto& value = it != src.end() ? it->second : data{};
-    if (!field.type && caf::holds_alternative<caf::none_t>(value))
-      return caf::make_error(ec::convert_error, fmt::format("failed to convert "
-                                                            "field {} because "
-                                                            "it has no type",
-                                                            field));
-    return field.type ? caf::visit(f, value, field.type) : caf::none;
-  }
-
-  template <class... Ts>
-  caf::error operator()(Ts&&... xs) {
-    auto rng = layout.fields();
-    auto it = rng.begin();
-    return caf::error::eval([&]() -> caf::error {
-      if constexpr (!caf::meta::is_annotation<Ts>::value) {
-        auto result = apply(*it, xs);
-        ++it;
-        return result;
-      }
-      return caf::none;
-    }...);
-  }
-
-  const record_type& layout;
-  const record& src;
-};
-
 // Overload for records.
-template <concepts::inspectable To>
-caf::error convert(const record& src, To& dst, const record_type& layout) {
+caf::error
+convert(const record& src, concepts::inspectable<record_inspector> auto& dst,
+        const record_type& layout) {
   auto ri = record_inspector{layout, src};
-  return inspect(ri, dst);
+  auto result = inspect(ri, dst);
+  if (!result)
+    return caf::make_error(ec::serialization_error,
+                           fmt::format("record inspection failed for record {} "
+                                       "with layout {}",
+                                       src, layout));
+  return {};
 }
 
 template <has_layout To>

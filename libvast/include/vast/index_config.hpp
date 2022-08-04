@@ -26,7 +26,7 @@ struct index_config {
 
     template <class Inspector>
     friend auto inspect(Inspector& f, rule& x) {
-      return f(x.targets, x.fp_rate);
+      return f.apply(x.targets) && f.apply(x.fp_rate);
     }
 
     static inline const record_type& layout() noexcept {
@@ -43,7 +43,7 @@ struct index_config {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, index_config& x) {
-    return f(x.rules, x.default_fp_rate);
+    return f.apply(x.rules) && f.apply(x.default_fp_rate);
   }
 
   static inline const record_type& layout() noexcept {

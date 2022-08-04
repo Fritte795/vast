@@ -105,15 +105,19 @@ public:
     }
   }
 
-  caf::error serialize(caf::serializer&) const override {
-    return caf::make_error(ec::logic_error, "attempted to serialize a "
-                                            "buffered_string_synopsis; did you "
-                                            "forget to shrink?");
+  bool serialize(caf::serializer&) const override {
+    VAST_WARN("{}", caf::make_error(ec::logic_error, "attempted to serialize a "
+                                                     "buffered_string_synopsis;"
+                                                     " did you "
+                                                     "forget to shrink?"));
+    return false;
   }
 
-  caf::error deserialize(caf::deserializer&) override {
-    return caf::make_error(ec::logic_error, "attempted to deserialize a "
-                                            "buffered_string_synopsis");
+  bool deserialize(caf::deserializer&) override {
+    VAST_WARN("{}",
+              caf::make_error(ec::logic_error, "attempted to deserialize a "
+                                               "buffered_string_synopsis"));
+    return false;
   }
 
   bool deserialize(vast::detail::legacy_deserializer&) override {

@@ -269,9 +269,9 @@ caf::message dump_command(const invocation& inv, caf::actor_system&) {
   caf::error request_error = caf::none;
   auto rp = self->make_response_promise();
   // The overload for 'request(...)' taking a 'std::chrono::duration' does not
-  // respect the specified message priority, so we convert to 'caf::duration'
+  // respect the specified message priority, so we convert to 'caf::timespan'
   // by hand.
-  const auto timeout = caf::duration{defaults::system::initial_request_timeout};
+  const auto timeout = caf::timespan{defaults::system::initial_request_timeout};
   self
     ->request<caf::message_priority::high>(type_registry, timeout, atom::get_v,
                                            atom::taxonomies_v)
@@ -335,7 +335,7 @@ caf::message dump_command(const invocation& inv, caf::actor_system&) {
       });
   if (request_error)
     return caf::make_message(std::move(request_error));
-  return caf::none;
+  return {};
 }
 
 caf::message status_command(const invocation& inv, caf::actor_system&) {
@@ -350,7 +350,7 @@ caf::message status_command(const invocation& inv, caf::actor_system&) {
   else
     VAST_VERBOSE("{} collects status for components {}", *self, inv.arguments);
   collect_component_status(self, verbosity, inv.arguments);
-  return caf::none;
+  return {};
 }
 
 caf::expected<caf::actor>
@@ -369,7 +369,6 @@ caf::expected<caf::actor>
 spawn_component(node_actor::stateful_pointer<node_state> self,
                 const invocation& inv, spawn_arguments& args) {
   VAST_TRACE_SCOPE("{} {}", VAST_ARG(inv), VAST_ARG(args));
-  using caf::atom_uint;
   auto i = node_state::component_factory.find(inv.full_name);
   if (i == node_state::component_factory.end())
     return caf::make_error(ec::unspecified, "invalid spawn component");
@@ -402,7 +401,7 @@ caf::message kill_command(const invocation& inv, caf::actor_system&) {
           rp.deliver(err);
         });
   }
-  return caf::none;
+  return caf::make_message(caf::error{});
 }
 
 /// Lifts a factory function that accepts `local_actor*` as first argument
@@ -609,7 +608,7 @@ node_state::spawn_command(const invocation& inv,
           rp.deliver(err);
           return make_message(err);
         });
-      return caf::none;
+      return make_message(caf::error{});
     }
   }
   // ... or spawn the component right away if not.
@@ -742,8 +741,7 @@ node(node_actor::stateful_pointer<node_state> self, std::string name,
                                            *self, component->name()));
           else if (auto err = register_component(
                      self, caf::actor_cast<caf::actor>(handle),
-                     component->name());
-                   err && err != caf::no_error)
+                     component->name()))
             return caf::make_error( //
               ec::unspecified, fmt::format("{} failed to register component "
                                            "plugin {} in component registry: "
@@ -759,27 +757,28 @@ node(node_actor::stateful_pointer<node_state> self, std::string name,
       // Run the command.
       this_node = self;
       auto msg = run(inv, self->system(), node_state::command_factory);
-      auto result = caf::expected<caf::actor>{caf::no_error};
+      auto result = caf::result<caf::actor>{caf::error{}};
       if (!msg) {
-        result = std::move(msg.error());
+        result = caf::result<caf::actor>{std::move(msg.error())};
       } else if (msg->empty()) {
         VAST_VERBOSE("{} encountered empty invocation response", *self);
       } else {
-        msg->apply({
+        auto f = caf::message_handler{
           [&](caf::error& x) {
-            result = std::move(x);
+            result = caf::result<caf::actor>{std::move(x)};
           },
           [&](caf::actor& x) {
-            result = std::move(x);
+            result = caf::result<caf::actor>{std::move(x)};
           },
           [&](caf::message& x) {
             VAST_ERROR("{} encountered invalid invocation response: {}", *self,
                        deep_to_string(x));
-            result = caf::make_error(ec::invalid_result,
-                                     "invalid spawn invocation response",
-                                     std::move(x));
+            result = caf::result<caf::actor>{caf::make_error(
+              ec::invalid_result, "invalid spawn invocation response",
+              std::move(x))};
           },
-        });
+        };
+        f(*msg);
       }
       return result;
     },

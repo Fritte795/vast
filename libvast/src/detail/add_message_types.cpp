@@ -53,9 +53,9 @@
 namespace vast::detail {
 
 void add_message_types(caf::actor_system_config& cfg) {
-  cfg.add_message_types<caf::id_block::vast_types>();
-  cfg.add_message_types<caf::id_block::vast_atoms>();
-  cfg.add_message_types<caf::id_block::vast_actors>();
+  // cfg.add_message_types<caf::id_block::vast_types>();
+  // cfg.add_message_types<caf::id_block::vast_atoms>();
+  // cfg.add_message_types<caf::id_block::vast_actors>();
   auto old_blocks = std::vector<plugin_type_id_block>{
     {caf::id_block::vast_types::begin, caf::id_block::vast_actors::end}};
   // Check for type ID conflicts between dynamic plugins.

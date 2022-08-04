@@ -25,24 +25,16 @@ enumeration_index::enumeration_index(vast::type t, caf::settings opts)
   // nop
 }
 
-caf::error enumeration_index::serialize(caf::serializer& sink) const {
-  return caf::error::eval(
-    [&] {
-      return value_index::serialize(sink);
-    },
-    [&] {
-      return sink(index_);
-    });
+bool enumeration_index::serialize(caf::serializer& sink) const {
+  if (!value_index::serialize(sink))
+    return sink.apply(index_);
+  return true;
 }
 
-caf::error enumeration_index::deserialize(caf::deserializer& source) {
-  return caf::error::eval(
-    [&] {
-      return value_index::deserialize(source);
-    },
-    [&] {
-      return source(index_);
-    });
+bool enumeration_index::deserialize(caf::deserializer& source) {
+  if (!value_index::deserialize(source))
+    return value_index::deserialize(source);
+  return true;
 }
 
 bool enumeration_index::deserialize(detail::legacy_deserializer& source) {

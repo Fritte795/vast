@@ -13,7 +13,7 @@
 #include "vast/detail/stable_map.hpp"
 #include "vast/type_set.hpp"
 
-#include <caf/meta/type_name.hpp>
+// #include <caf/meta/type_name.hpp>
 #include <fmt/format.h>
 
 #include <memory>
@@ -41,8 +41,10 @@ struct concept_ {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, concept_& c) {
-    return f(caf::meta::type_name("concept"), c.description, c.fields,
-             c.concepts);
+    return f.object(c).fields(f.field("concept", c.description));
+    // todo nested
+    // return f(caf::meta::type_name("concept"), c.description, c.fields,
+    //          c.concepts);
   }
 
   inline static const record_type& layout() noexcept {
@@ -76,7 +78,10 @@ struct model {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, model& m) {
-    return f(caf::meta::type_name("model"), m.description, m.definition);
+    // todo nested
+
+    return f.object(m).fields(f.field("model", m.description));
+    // return f(caf::meta::type_name("model"), m.description, m.definition);
   }
 
   inline static const record_type& layout() noexcept {
@@ -105,7 +110,9 @@ struct taxonomies {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, taxonomies& t) {
-    return f(caf::meta::type_name("taxonomies"), t.concepts, t.models);
+    return f.object(t).fields(f.field("taxonomies", t.concepts));
+    // todo nested
+    // return f(caf::meta::type_name("taxonomies"), t.concepts, t.models);
   }
 };
 

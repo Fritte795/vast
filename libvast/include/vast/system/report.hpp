@@ -34,7 +34,9 @@ struct data_point {
 
   template <class Inspector>
   friend typename Inspector::result_type inspect(Inspector& f, data_point& s) {
-    return f(caf::meta::type_name("data_point"), s.key, s.value);
+    // todo nested ?
+    return f.object(s).fields(f.field("data_point", std::pair{s.key, s.value}));
+    // return f(caf::meta::type_name("data_point"), s.key, s.value);
   }
 };
 
@@ -44,7 +46,8 @@ struct report {
 
   template <class Inspector>
   friend typename Inspector::result_type inspect(Inspector& f, report& x) {
-    return f(caf::meta::type_name("report"), x.data, x.metadata);
+    return f.object(x).fields(f.field("report", std::pair{x.data, x.metadata}));
+    // return f(caf::meta::type_name("report"), x.data, x.metadata);
   }
 };
 
@@ -56,7 +59,9 @@ struct performance_sample {
   template <class Inspector>
   friend typename Inspector::result_type
   inspect(Inspector& f, performance_sample& s) {
-    return f(caf::meta::type_name("performance_sample"), s.key, s.value);
+    return f.object(s).fields(
+      f.field("performance_sample", std::pair{s.key, s.value}));
+    // return f(caf::meta::type_name("performance_sample"), s.key, s.value);
   }
 };
 
@@ -67,7 +72,9 @@ struct performance_report {
   template <class Inspector>
   friend typename Inspector::result_type
   inspect(Inspector& f, performance_report& x) {
-    return f(caf::meta::type_name("performance_report"), x.data, x.metadata);
+    return f.object(x).fields(
+      f.field("performance_report", std::pair{x.data, x.metadata}));
+    // return f(caf::meta::type_name("performance_report"), x.data, x.metadata);
   }
 };
 

@@ -54,6 +54,7 @@ const char* descriptions[] = {
   "out_of_memory",
   "system_error",
   "breaking_change",
+  "serialization_error",
 };
 
 static_assert(ec{std::size(descriptions)} == ec::ec_count,
@@ -68,7 +69,7 @@ void render_default_ctx(std::ostringstream& oss, const caf::message& ctx) {
       if (ctx.match_element<std::string>(i))
         oss << ctx.get_as<std::string>(i);
       else
-        oss << ctx.stringify(i);
+        oss << caf::to_string(ctx);
     }
   }
 }
@@ -82,32 +83,32 @@ const char* to_string(ec x) {
 }
 
 std::string render(caf::error err) {
-  using caf::atom_uint;
+  // using caf::atom_uint;
   if (!err)
     return "";
   std::ostringstream oss;
-  auto category = err.category();
-  if (atom_uint(category) == atom_uint("vast") && err == ec::silent)
-    return "";
-  oss << "!! ";
-  switch (atom_uint(category)) {
-    default:
-      oss << to_string(category);
-      render_default_ctx(oss, err.context());
-      break;
-    case atom_uint("vast"):
-      oss << to_string(static_cast<vast::ec>(err.code()));
-      render_default_ctx(oss, err.context());
-      break;
-    case atom_uint("parser"):
-      oss << to_string(static_cast<caf::pec>(err.code()));
-      render_default_ctx(oss, err.context());
-      break;
-    case atom_uint("system"):
-      oss << to_string(static_cast<caf::sec>(err.code()));
-      render_default_ctx(oss, err.context());
-      break;
-  }
+  // auto category = err.category();
+  // if (atom_uint(category) == atom_uint("vast") && err == ec::silent)
+  //   return "";
+  // oss << "!! ";
+  // switch (atom_uint(category)) {
+  //   default:
+  //     oss << to_string(category);
+  //     render_default_ctx(oss, err.context());
+  //     break;
+  //   case atom_uint("vast"):
+  //     oss << to_string(static_cast<vast::ec>(err.code()));
+  //     render_default_ctx(oss, err.context());
+  //     break;
+  //   case atom_uint("parser"):
+  //     oss << to_string(static_cast<caf::pec>(err.code()));
+  //     render_default_ctx(oss, err.context());
+  //     break;
+  //   case atom_uint("system"):
+  //     oss << to_string(static_cast<caf::sec>(err.code()));
+  //     render_default_ctx(oss, err.context());
+  //     break;
+  // }
   return oss.str();
 }
 

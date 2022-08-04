@@ -208,8 +208,7 @@ public:
 
   /// Support CAF's type inspection.
   template <class Inspector>
-  friend auto inspect(Inspector& f, projection& x) ->
-    typename Inspector::result_type {
+  friend auto inspect(Inspector& f, projection& x) {
     return f(caf::meta::type_name("vast.projection"), x.slice_, x.types_,
              x.indices_);
   }

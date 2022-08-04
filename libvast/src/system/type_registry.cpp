@@ -234,7 +234,7 @@ type_registry(type_registry_actor::stateful_pointer<type_registry_state> self,
       self->send(self->state.accountant, std::move(telemetry));
     if (auto err = self->state.save_to_disk())
       VAST_ERROR("{} failed to persist state to disk: {}", *self,
-                 self->system().render(err));
+                 to_string(err));
     self->quit(msg.reason);
   });
   // Load existing state from disk if possible.
@@ -331,7 +331,8 @@ type_registry(type_registry_actor::stateful_pointer<type_registry_state> self,
         = taxonomies{std::move(concepts), std::move(models)};
       return atom::ok_v;
     },
-    [self](atom::resolve, const expression& e) {
+    [self](atom::resolve,
+           const expression& e) -> caf::result<vast::expression> {
       return resolve(self->state.taxonomies, e, self->state.data);
     },
     [self](accountant_actor accountant) {

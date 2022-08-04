@@ -85,12 +85,12 @@ public:
     return bloom_filter_.memusage();
   }
 
-  caf::error serialize(caf::serializer& sink) const override {
-    return sink(bloom_filter_);
+  bool serialize(caf::serializer& sink) const override {
+    return sink.apply(bloom_filter_);
   }
 
-  caf::error deserialize(caf::deserializer& source) override {
-    return source(bloom_filter_);
+  bool deserialize(caf::deserializer& source) override {
+    return source.apply(bloom_filter_);
   }
 
   bool deserialize(vast::detail::legacy_deserializer& source) override {

@@ -79,9 +79,9 @@ public:
 
   // -- persistence -----------------------------------------------------------
 
-  virtual caf::error serialize(caf::serializer& sink) const;
+  virtual bool serialize(caf::serializer& sink) const;
 
-  virtual caf::error deserialize(caf::deserializer& source);
+  virtual bool deserialize(caf::deserializer& source);
 
   virtual bool deserialize(detail::legacy_deserializer& source);
 
@@ -116,22 +116,25 @@ private:
 };
 
 /// @relates value_index
-caf::error inspect(caf::serializer& sink, const value_index& x);
+bool inspect(caf::serializer& sink, const value_index& x);
 
 /// @relates value_index
-caf::error inspect(caf::deserializer& source, value_index& x);
+bool inspect(caf::deserializer& source, value_index& x);
 
 /// @relates value_index
 bool inspect(detail::legacy_deserializer& source, value_index& x);
 
 /// @relates value_index
-caf::error inspect(caf::serializer& sink, const value_index_ptr& x);
+bool inspect(caf::serializer& sink, const value_index_ptr& x);
 
 /// @relates value_index
-caf::error inspect(caf::deserializer& source, value_index_ptr& x);
+bool inspect(caf::deserializer& source, value_index_ptr& x);
 
 /// @relates value_index
 bool inspect(detail::legacy_deserializer& source, value_index_ptr& x);
+
+/// @relates value_index
+bool inspect(caf::binary_serializer& source, value_index_ptr& x);
 
 /// Serialize the value index into a chunk.
 vast::chunk_ptr chunkify(const value_index_ptr& idx);

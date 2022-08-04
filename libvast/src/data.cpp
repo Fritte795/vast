@@ -655,43 +655,40 @@ bool convert(const caf::dictionary<caf::config_value>& xs, data& y) {
 bool convert(const caf::config_value& x, data& y) {
   auto f = detail::overload{
     [&](const auto& value) -> bool {
-      y = value;
+      // y = value;
       return true;
     },
-    [&](const caf::config_value::integer& value) -> bool {
-      y = integer{value};
-      return true;
-    },
-    [&](caf::config_value::atom value) -> bool {
-      y = to_string(value);
-      return true;
-    },
-    [&](const caf::uri& value) -> bool {
-      y = to_string(value);
-      return true;
-    },
-    [&](const caf::config_value::list& xs) -> bool {
-      list result;
-      result.reserve(xs.size());
-      for (const auto& x : xs) {
-        data element;
-        if (!convert(x, element)) {
-          return false;
-        }
-        result.push_back(std::move(element));
-      }
-      y = std::move(result);
-      return true;
-    },
-    [&](const caf::config_value::dictionary& xs) -> bool {
-      record result;
-      if (!convert(xs, result))
-        return false;
-      y = std::move(result);
-      return true;
-    },
+    // [&](const caf::config_value::integer& value) -> bool {
+    //   y = integer{value};
+    //   return true;
+    // },
+    // [&](const caf::uri& value) -> bool {
+    //   y = to_string(value);
+    //   return true;
+    // },
+    // [&](const caf::config_value::list& xs) -> bool {
+    //   list result;
+    //   result.reserve(xs.size());
+    //   for (const auto& x : xs) {
+    //     data element;
+    //     if (!convert(x, element)) {
+    //       return false;
+    //     }
+    //     result.push_back(std::move(element));
+    //   }
+    //   y = std::move(result);
+    //   return true;
+    // },
+    // [&](const caf::config_value::dictionary& xs) -> bool {
+    //   record result;
+    //   if (!convert(xs, result))
+    //     return false;
+    //   y = std::move(result);
+    //   return true;
+    // },
   };
-  return caf::visit(f, x);
+  // return caf::visit(f, x);
+  return false;
 }
 
 record strip(const record& xs) {

@@ -39,14 +39,15 @@ caf::expected<std::tuple<Actors...>>
 get_node_components(caf::scoped_actor& self, const node_actor& node) {
   using result_t = std::tuple<Actors...>;
   auto result = caf::expected{result_t{}};
-  auto normalize = [](std::string in) {
+  auto normalize = [](caf::string_view in) {
     // Remove the uninteresting parts of the name:
     //   vast::system::type_registry_actor -> type_registry
-    in.erase(0, sizeof("vast::system::") - 1);
-    in.erase(in.size() - (sizeof("_actor") - 1));
+    auto str = std::string{in.data()};
+    str.erase(0, sizeof("vast::system::") - 1);
+    str.erase(str.size() - (sizeof("_actor") - 1));
     // Replace '_' with '-': type_registry -> type-registry
-    std::replace(in.begin(), in.end(), '_', '-');
-    return in;
+    std::replace(str.begin(), str.end(), '_', '-');
+    return str;
   };
   auto labels = std::vector<std::string>{
     normalize(caf::type_name_by_id<caf::type_id<Actors>::value>::value)...};

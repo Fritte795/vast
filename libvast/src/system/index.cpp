@@ -1878,7 +1878,7 @@ index(index_actor::stateful_pointer<index_state> self,
       auto counter = detail::make_fanout_counter(
         self->state.active_partitions.size(),
         [rp]() mutable {
-          static_cast<caf::response_promise&>(rp).deliver(caf::unit);
+          rp.deliver();
         },
         [rp](caf::error error) mutable {
           rp.deliver(std::move(error));

@@ -221,9 +221,7 @@ sink_command(const invocation& inv, caf::actor_system& sys, caf::actor snk) {
     .until([&] {
       return stop;
     });
-  if (err)
     return caf::make_message(std::move(err));
-  return caf::none;
 }
 
 } // namespace vast::system

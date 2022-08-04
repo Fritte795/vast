@@ -20,7 +20,7 @@ struct layout_statistics {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, layout_statistics& x) {
-    return f(caf::meta::type_name("layout_statistics"), x.count);
+    return f.object(x).fields(f.field("layout_statistics"), x.count);
   }
 };
 
@@ -36,7 +36,7 @@ struct index_statistics {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, index_statistics& x) {
-    return f(caf::meta::type_name("index_statistics"), x.layouts);
+    return f.object(x).fields(f.field("index_statistics"), x.layouts);
   }
 };
 

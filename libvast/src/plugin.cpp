@@ -48,9 +48,9 @@ get_plugin_dirs(const caf::actor_system_config& cfg) {
   // Since we do not read configuration files that were not explicitly
   // specified when in bare-mode, it is safe to just read the option
   // `vast.plugin-dirs` even with bare-mode enabled.
-  if (auto dirs = caf::get_if<std::vector<std::string>>( //
-        &cfg, "vast.plugin-dirs"))
-    result.insert(dirs->begin(), dirs->end());
+  // if (auto dirs = caf::get_if<std::vector<std::string>>( //
+  //       &cfg, "vast.plugin-dirs"))
+  //   result.insert(dirs->begin(), dirs->end());
   if (!bare_mode)
     if (auto home = detail::getenv("HOME"))
       result.insert(std::filesystem::path{*home} / ".local" / "lib" / "vast"

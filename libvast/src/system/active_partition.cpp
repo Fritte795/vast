@@ -354,9 +354,7 @@ active_partition_actor::behavior_type active_partition(
       -> caf::result<partition_synopsis_ptr> {
       VAST_DEBUG("{} got persist atom", *self);
       // Ensure that the response promise has not already been initialized.
-      VAST_ASSERT(
-        !static_cast<caf::response_promise&>(self->state.persistence_promise)
-           .source());
+      VAST_ASSERT(!self->state.persistence_promise.source());
       self->state.persist_path = part_dir;
       self->state.synopsis_path = synopsis_dir;
       self->state.persisted_indexers = 0;

@@ -366,7 +366,7 @@ TEST(identity partition pipeline via the index) {
       REQUIRE_GREATER(partition_uuids->size(), 0ull);
       const auto* uuid_fb = *partition_uuids->begin();
       VAST_ASSERT(uuid_fb);
-      REQUIRE_EQUAL(unpack(*uuid_fb, partition_uuid), caf::no_error);
+      REQUIRE_EQUAL(unpack(*uuid_fb, partition_uuid), caf::error{});
     },
     [](const caf::error& e) {
       FAIL("unexpected error" << e);
@@ -466,7 +466,7 @@ TEST(select pipeline with an empty result set) {
       REQUIRE_GREATER(partition_uuids->size(), 0ull);
       const auto* uuid_fb = *partition_uuids->begin();
       VAST_ASSERT(uuid_fb);
-      REQUIRE_EQUAL(unpack(*uuid_fb, partition_uuid), caf::no_error);
+      REQUIRE_EQUAL(unpack(*uuid_fb, partition_uuid), caf::error{});
     },
     [](const caf::error& e) {
       FAIL("unexpected error" << e);

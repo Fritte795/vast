@@ -16,8 +16,8 @@
 #include "vast/type.hpp"
 #include "vast/view.hpp"
 
-#include <caf/meta/load_callback.hpp>
-#include <caf/meta/type_name.hpp>
+// #include <caf/meta/load_callback.hpp>
+// #include <caf/meta/type_name.hpp>
 
 #include <cstddef>
 #include <span>
@@ -201,18 +201,20 @@ public:
 
   /// Opt-in to CAF's type inspection API.
   template <class Inspector>
-  friend auto inspect(Inspector& f, table_slice& x) ->
-    typename Inspector::result_type {
+  friend auto inspect(Inspector& f, table_slice& x) {
     auto chunk = x.chunk_;
-    return f(caf::meta::type_name("vast.table_slice"), chunk,
-             caf::meta::load_callback([&]() noexcept -> caf::error {
-               // When VAST allows for external tools to hook directly into the
-               // table slice streams, this should be switched to verify if the
-               // chunk is unique.
-               x = table_slice{std::move(chunk), table_slice::verify::no};
-               return caf::none;
-             }),
-             x.offset_);
+    // return f(caf::meta::type_name("vast.table_slice"), chunk,
+    //          caf::meta::load_callback([&]() noexcept -> caf::error {
+    //            // When VAST allows for external tools to hook directly into
+    //            the
+    //            // table slice streams, this should be switched to verify if
+    //            the
+    //            // chunk is unique.
+    //            x = table_slice{std::move(chunk), table_slice::verify::no};
+    //            return caf::none;
+    //          }),
+    //          x.offset_);
+    return f.object(x).fields(f.field("vast.table_slice", chunk));
   }
 
   // -- operations -------------------------------------------------------------

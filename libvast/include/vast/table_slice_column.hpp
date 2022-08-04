@@ -14,7 +14,7 @@
 #include "vast/table_slice.hpp"
 #include "vast/view.hpp"
 
-#include <caf/meta/type_name.hpp>
+// #include <caf/meta/type_name.hpp>
 
 #include <cstdint>
 #include <optional>
@@ -58,10 +58,11 @@ public:
 
   /// Opt-in to CAF's type inspection API.
   template <class Inspector>
-  friend auto inspect(Inspector& f, table_slice_column& x) ->
-    typename Inspector::result_type {
-    return f(caf::meta::type_name("vast.table_slice_column"), x.slice_,
-             x.column_);
+  friend auto inspect(Inspector& f, table_slice_column& x) {
+    // todo nested
+    return f.object(x).fields(f.field("vast.table_slice_column", x.slice_));
+    // return f(caf::meta::type_name("vast.table_slice_column"), x.slice_,
+    //          x.column_);
   }
 
 private:

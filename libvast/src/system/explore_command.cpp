@@ -140,7 +140,7 @@ caf::message explore_command(const invocation& inv, caf::actor_system& sys) {
         }
         if (msg.reason) {
           VAST_DEBUG("{} received error message: {}", inv.full_name,
-                     self->system().render(msg.reason));
+                     msg.reason);
           err = std::move(msg.reason);
         }
         stop = true;
@@ -155,9 +155,7 @@ caf::message explore_command(const invocation& inv, caf::actor_system& sys) {
     .until([&] {
       return stop;
     });
-  if (err)
-    return caf::make_message(std::move(err));
-  return caf::none;
+  return caf::make_message(std::move(err));
 }
 
 } // namespace vast::system

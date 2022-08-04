@@ -112,24 +112,16 @@ public:
     }
   }
 
-  caf::error serialize(caf::serializer& sink) const override {
-    return caf::error::eval(
-      [&] {
-        return value_index::serialize(sink);
-      },
-      [&] {
-        return sink(bmi_);
-      });
+  bool serialize(caf::serializer& sink) const override {
+    if (!value_index::serialize(sink))
+      return sink.apply(bmi_);
+    return true;
   }
 
-  caf::error deserialize(caf::deserializer& source) override {
-    return caf::error::eval(
-      [&] {
-        return value_index::deserialize(source);
-      },
-      [&] {
-        return source(bmi_);
-      });
+  bool deserialize(caf::deserializer& source) override {
+    if (!value_index::deserialize(source))
+      return source.apply(bmi_);
+    return true;
   }
 
   bool deserialize(detail::legacy_deserializer& source) override {

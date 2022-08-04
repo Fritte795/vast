@@ -66,12 +66,12 @@ bool bool_synopsis::any_true() {
   return true_;
 }
 
-caf::error bool_synopsis::serialize(caf::serializer& sink) const {
-  return sink(false_, true_);
+bool bool_synopsis::serialize(caf::serializer& sink) const {
+  return sink.apply(false_) && sink.apply(true_);
 }
 
-caf::error bool_synopsis::deserialize(caf::deserializer& source) {
-  return source(false_, true_);
+bool bool_synopsis::deserialize(caf::deserializer& source) {
+  return source.apply(false_) && source.apply(true_);
 }
 
 bool bool_synopsis::deserialize(vast::detail::legacy_deserializer& source) {

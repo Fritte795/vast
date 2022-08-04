@@ -37,9 +37,9 @@ public:
   using size_bitmap_index
     = bitmap_index<uint32_t, multi_level_coder<range_coder<ids>>>;
 
-  caf::error serialize(caf::serializer& sink) const override;
+  bool serialize(caf::serializer& sink) const override;
 
-  caf::error deserialize(caf::deserializer& source) override;
+  bool deserialize(caf::deserializer& source) override;
 
   bool deserialize(detail::legacy_deserializer& source) override;
 

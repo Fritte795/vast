@@ -44,41 +44,45 @@ synopsis_ptr synopsis::shrink() const {
   return nullptr;
 }
 
-caf::error inspect(caf::serializer& sink, synopsis_ptr& ptr) {
-  if (!ptr) {
-    static legacy_type dummy;
-    return sink(dummy);
-  }
-  return caf::error::eval(
-    [&] {
-      return sink(ptr->type().to_legacy_type());
-    },
-    [&] {
-      return ptr->serialize(sink);
-    });
+bool inspect(caf::binary_serializer& sink, synopsis_ptr& ptr) {
+  // todo
+  return false;
 }
 
-caf::error inspect(caf::deserializer& source, synopsis_ptr& ptr) {
+bool inspect(caf::serializer& sink, synopsis_ptr& ptr) {
+  if (!ptr) {
+    static legacy_type dummy;
+    return sink.apply(dummy);
+  }
+  if (!sink.apply(ptr->type().to_legacy_type()))
+    return ptr->serialize(sink);
+  return true;
+}
+
+bool inspect(caf::deserializer& source, synopsis_ptr& ptr) {
   // Read synopsis type.
   legacy_type t;
-  if (auto err = source(t))
-    return err;
+  if (auto result = source.apply(t))
+    return result;
   // Only nullptr has an none type.
   if (!t) {
     ptr.reset();
-    return caf::none;
+    return false;
   }
   // Deserialize into a new instance.
   auto new_ptr
     = factory<synopsis>::make(type::from_legacy_type(t), caf::settings{});
-  if (!new_ptr)
-    return ec::invalid_synopsis_type;
-  if (auto err = new_ptr->deserialize(source))
-    return err;
+  if (!new_ptr) {
+    VAST_WARN("Error during synopsis deserialization {}",
+              caf::make_error(ec::invalid_synopsis_type));
+    return false;
+  }
+  if (auto result = new_ptr->deserialize(source))
+    return result;
   // Change `ptr` only after successfully deserializing.
   using std::swap;
   swap(ptr, new_ptr);
-  return caf::none;
+  return false;
 }
 
 bool inspect(vast::detail::legacy_deserializer& source, synopsis_ptr& ptr) {

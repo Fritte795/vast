@@ -121,7 +121,7 @@ system::store_actor::behavior_type default_passive_store(
       });
   return {
     [self](atom::query,
-           const query_context& query_context) -> caf::expected<uint64_t> {
+           const query_context& query_context) -> caf::result<uint64_t> {
       const auto start = std::chrono::steady_clock::now();
       auto num_hits = self->state.store->lookup(self, query_context);
       if (!num_hits)
@@ -177,7 +177,7 @@ system::store_builder_actor::behavior_type default_active_store(
   self->state.store_type = std::move(store_type);
   return {
     [self](atom::query,
-           const query_context& query_context) -> caf::expected<uint64_t> {
+           const query_context& query_context) -> caf::result<uint64_t> {
       const auto start = std::chrono::steady_clock::now();
       auto num_hits = self->state.store->lookup(self, query_context);
       if (!num_hits)
@@ -198,7 +198,7 @@ system::store_builder_actor::behavior_type default_active_store(
                  });
       return *num_hits;
     },
-    [self](atom::erase, const ids& selection) -> caf::expected<uint64_t> {
+    [self](atom::erase, const ids& selection) {
       // For new, partition-local stores we know that we always erase
       // everything.
       const auto num_events = self->state.store->num_events();
@@ -210,7 +210,7 @@ system::store_builder_actor::behavior_type default_active_store(
       return num_events;
     },
     [self](caf::stream<table_slice> stream)
-      -> caf::inbound_stream_slot<table_slice> {
+      -> caf::result<caf::inbound_stream_slot<table_slice>> {
       struct stream_state {
         // We intentionally store a strong reference here: The store lifetime
         // is ref-counted, it should exit after all currently active queries
@@ -264,9 +264,8 @@ system::store_builder_actor::behavior_type default_active_store(
         });
       return attach_sink_result.inbound_slot();
     },
-    [self](atom::status,
-           [[maybe_unused]] system::status_verbosity verbosity) -> record {
-      return {
+    [self](atom::status, [[maybe_unused]] system::status_verbosity verbosity) {
+      return record{
         {"events", self->state.store->num_events()},
         {"path", self->state.path.string()},
         {"store-type", self->state.store_type},

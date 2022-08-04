@@ -16,7 +16,7 @@
 #include <caf/actor.hpp>
 #include <caf/actor_cast.hpp>
 #include <caf/expected.hpp>
-#include <caf/meta/type_name.hpp>
+// #include <caf/meta/type_name.hpp>
 #include <caf/optional.hpp>
 
 #include <cstdint>
@@ -101,8 +101,8 @@ public:
       std::replace(in.begin(), in.end(), '_', '-');
       return in;
     };
-    auto labels = std::array<std::string, sizeof...(Handles)>{
-      normalize(caf::type_name_by_id<caf::type_id<Handles>::value>::value)...};
+    auto labels = std::array<std::string, sizeof...(Handles)>{normalize(
+      caf::type_name_by_id<caf::type_id<Handles>::value>::value.data())...};
     auto components = std::apply(
       [this](auto&&... labels) -> std::array<caf::actor, sizeof...(Handles)> {
         auto find_component = [this](auto&& label) -> caf::actor {
@@ -134,7 +134,8 @@ public:
   /// @relates registry
   template <class Inspector>
   friend auto inspect(Inspector& f, component_registry& x) {
-    return f(caf::meta::type_name("component_registry"), x.components_);
+    // return f(caf::meta::type_name("component_registry"), x.components_);
+    return f.object(x).fields(f.field("component_registry", x.components_));
   }
 
 private:

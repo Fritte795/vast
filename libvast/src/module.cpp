@@ -117,7 +117,7 @@ caf::expected<module> get_module(const caf::settings& options) {
                     "provided");
   if (!sc && !mf)
     return module;
-  caf::expected<vast::module> update = caf::no_error;
+  caf::expected<vast::module> update = caf::error{};
   if (sc)
     update = to<vast::module>(*sc);
   else
@@ -148,9 +148,9 @@ get_module_dirs(const caf::actor_system_config& cfg) {
       result.insert(std::filesystem::path{*home} / ".config" / "vast"
                     / "schema");
   }
-  if (auto dirs = caf::get_if<std::vector<std::string>>( //
-        &cfg, "vast.schema-dirs"))
-    result.insert(dirs->begin(), dirs->end());
+  // if (auto dirs = caf::get_if<std::vector<std::string>>( //
+  //       &cfg, "vast.schema-dirs"))
+  //   result.insert(dirs->begin(), dirs->end());
   return result;
 }
 

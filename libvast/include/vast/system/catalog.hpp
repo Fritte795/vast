@@ -102,8 +102,10 @@ struct catalog_result {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, catalog_result& x) {
-    return f(caf::meta::type_name("vast.system.catalog_result"), x.kind,
-             x.partitions);
+    // todo nested
+    return f.object(x).fields(f.field("vast.system.catalog_result", x.kind));
+    // return f(caf::meta::type_name("vast.system.catalog_result"), x.kind,
+    //          x.partitions);
   }
 };
 

@@ -722,7 +722,7 @@ public:
                total_packets_);
     if (::pcap_dump_flush(dumper_.get()) == -1)
       return caf::make_error(ec::format_error, "failed to flush");
-    return caf::no_error;
+    return {};
   }
 
   [[nodiscard]] const char* name() const override {

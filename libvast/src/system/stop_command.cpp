@@ -44,9 +44,7 @@ caf::message stop_command(const invocation& inv, caf::actor_system& sys) {
       VAST_INFO("remote node terminated successfully");
     },
     [&](caf::error& e) { err = std::move(e); });
-  if (err)
-    return caf::make_message(std::move(err));
-  return caf::none;
+  return caf::make_message(std::move(err));
 }
 
 } // namespace vast::system

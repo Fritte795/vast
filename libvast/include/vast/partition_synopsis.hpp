@@ -141,8 +141,10 @@ struct partition_info {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, partition_info& x) {
-    return f(caf::meta::type_name("partition_info"), x.uuid, x.events,
-             x.max_import_time, x.schema);
+    // todo nested
+    return f.object(x).fields(f.field("partition_info", x.uuid));
+    // return f(caf::meta::type_name("partition_info"), x.uuid, x.events,
+    //          x.max_import_time, x.schema);
   }
 };
 

@@ -303,7 +303,7 @@ parse(const command& root, command::argument_iterator first,
   }
   if (get_or(result.options, "help", false)) {
     helptext(*target, std::cout);
-    return caf::no_error;
+    return {caf::error{}};
   }
   return result;
 }

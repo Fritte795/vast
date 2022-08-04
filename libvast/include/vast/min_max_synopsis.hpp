@@ -80,12 +80,12 @@ public:
     return sizeof(min_max_synopsis);
   }
 
-  caf::error serialize(caf::serializer& sink) const override {
-    return sink(min_, max_);
+  bool serialize(caf::serializer& sink) const override {
+    return sink.apply(min_) && sink.apply(max_);
   }
 
-  caf::error deserialize(caf::deserializer& source) override {
-    return source(min_, max_);
+  bool deserialize(caf::deserializer& source) override {
+    return source.apply(min_) && source.apply(max_);
   }
 
   bool deserialize(vast::detail::legacy_deserializer& source) override {

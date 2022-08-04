@@ -85,15 +85,9 @@ concept floating_point = std::is_floating_point_v<T>;
 template <class T>
 concept arithmetic = std::is_arithmetic_v<T>;
 
-struct any_callable {
-  using result_type = void;
-  template <class... Ts>
-  void operator()(Ts&&...);
-};
-
 /// Inspectables
-template <class T>
-concept inspectable = requires(any_callable& i, T& x) {
+template <class T, class Inspector>
+concept inspectable = requires(Inspector& i, T& x) {
   {inspect(i, x)};
 };
 

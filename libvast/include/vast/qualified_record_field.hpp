@@ -65,10 +65,12 @@ struct qualified_record_field {
                         const qualified_record_field& y) noexcept;
 
   template <class Inspector>
-  friend auto inspect(Inspector& f, qualified_record_field& x) ->
-    typename Inspector::result_type {
-    return f(caf::meta::type_name("vast.qualified_record_field"), x.field_.name,
-             x.field_.type, x.layout_name_);
+  friend auto inspect(Inspector& f, qualified_record_field& x) {
+    return f.object(x).fields(
+      f.field("vast.qualified_record_field", x.field_.name));
+    // return f(caf::meta::type_name("vast.qualified_record_field"),
+    // x.field_.name,
+    //          x.field_.type, x.layout_name_);
   }
 
   // These overloads exists for backwards compatibility. In some cases, we
@@ -77,8 +79,8 @@ struct qualified_record_field {
   // - std::string layout_name
   // - std::string field_name
   // - legacy_type field_type
-  friend caf::error inspect(caf::serializer& f, qualified_record_field& x);
-  friend caf::error inspect(caf::deserializer& f, qualified_record_field& x);
+  friend bool inspect(caf::serializer& f, qualified_record_field& x);
+  friend bool inspect(caf::deserializer& f, qualified_record_field& x);
   friend bool
   inspect(detail::legacy_deserializer& f, qualified_record_field& x);
 

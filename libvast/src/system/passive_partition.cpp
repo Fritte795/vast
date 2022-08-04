@@ -318,10 +318,7 @@ partition_actor::behavior_type passive_partition(
         // Deliver the error for all deferred evaluations.
         for (auto&& [expr, rp] :
              std::exchange(self->state.deferred_evaluations, {})) {
-          // Because of a deficiency in the typed_response_promise API, we must
-          // access the underlying response_promise to deliver the error.
-          caf::response_promise& untyped_rp = rp;
-          untyped_rp.deliver(static_cast<partition_actor>(self), err);
+          rp.deliver(err);
         }
         // Quit the partition.
         self->quit(std::move(err));

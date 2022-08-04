@@ -224,8 +224,8 @@ public:
   friend caf::error
   write(const std::filesystem::path& filename, const chunk_ptr& x);
   friend caf::error read(const std::filesystem::path& filename, chunk_ptr& x);
-  friend caf::error inspect(caf::serializer& sink, const chunk_ptr& x);
-  friend caf::error inspect(caf::deserializer& source, chunk_ptr& x);
+  friend bool inspect(caf::serializer& sink, const chunk_ptr& x);
+  friend bool inspect(caf::deserializer& source, chunk_ptr& x);
   friend bool inspect(detail::legacy_deserializer& source, chunk_ptr& x);
 
 private:

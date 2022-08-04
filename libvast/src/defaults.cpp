@@ -18,7 +18,7 @@
 namespace vast::defaults::import {
 
 size_t test::seed(const caf::settings& options) {
-  if (auto val = caf::get_if<size_t>(&options, "vast.import.test.seed"))
+  if (auto val = caf::get_if<int64_t>(&options, "vast.import.test.seed"))
     return *val;
   std::random_device rd;
   return rd();

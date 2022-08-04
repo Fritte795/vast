@@ -42,14 +42,14 @@ caf::expected<void> value_index::append(data_view x, id pos) {
   if (caf::holds_alternative<caf::none_t>(x)) {
     none_.append_bits(false, pos - none_.size());
     none_.append_bit(true);
-    return caf::no_error;
+    return {};
   }
   // TODO: let append_impl return caf::error
   if (!append_impl(x, pos))
     return caf::make_error(ec::unspecified, "append_impl");
   mask_.append_bits(false, pos - mask_.size());
   mask_.append_bit(true);
-  return caf::no_error;
+  return {};
 }
 
 caf::expected<ids>
@@ -102,12 +102,12 @@ const caf::settings& value_index::options() const {
   return opts_;
 }
 
-caf::error value_index::serialize(caf::serializer& sink) const {
-  return sink(mask_, none_);
+bool value_index::serialize(caf::serializer& sink) const {
+  return sink.apply(mask_) && sink.apply(none_);
 }
 
-caf::error value_index::deserialize(caf::deserializer& source) {
-  return source(mask_, none_);
+bool value_index::deserialize(caf::deserializer& source) {
+  return source.apply(mask_) && source.apply(none_);
 }
 
 bool value_index::deserialize(detail::legacy_deserializer& source) {
@@ -185,11 +185,11 @@ const ewah_bitmap& value_index::none() const {
   return none_;
 }
 
-caf::error inspect(caf::serializer& sink, const value_index& x) {
+bool inspect(caf::serializer& sink, const value_index& x) {
   return x.serialize(sink);
 }
 
-caf::error inspect(caf::deserializer& source, value_index& x) {
+bool inspect(caf::deserializer& source, value_index& x) {
   return x.deserialize(source);
 }
 
@@ -197,34 +197,34 @@ bool inspect(detail::legacy_deserializer& source, value_index& x) {
   return x.deserialize(source);
 }
 
-caf::error inspect(caf::serializer& sink, const value_index_ptr& x) {
+bool inspect(caf::serializer& sink, const value_index_ptr& x) {
   auto lt = legacy_type{};
   if (x == nullptr)
-    return sink(lt);
+    return sink.apply(lt);
   lt = x->type().to_legacy_type();
-  return caf::error::eval(
-    [&] {
-      return sink(lt, x->options());
-    },
-    [&] {
-      return x->serialize(sink);
-    });
+
+  if (!sink.apply(lt) && sink.apply(x->options())) {
+    return x->serialize(sink);
+  }
+  return true;
 }
 
-caf::error inspect(caf::deserializer& source, value_index_ptr& x) {
+bool inspect(caf::deserializer& source, value_index_ptr& x) {
   legacy_type lt;
-  if (auto err = source(lt))
-    return err;
+  if (auto result = source.apply(lt))
+    return result;
   if (caf::holds_alternative<legacy_none_type>(lt)) {
     x = nullptr;
-    return caf::none;
+    return true;
   }
   caf::settings opts;
-  if (auto err = source(opts))
-    return err;
+  if (auto result = source.apply(opts))
+    return result;
   x = factory<value_index>::make(type::from_legacy_type(lt), std::move(opts));
-  if (x == nullptr)
-    return caf::make_error(ec::unspecified, "failed to construct value index");
+  if (x == nullptr) {
+    VAST_WARN("failed to construct value index");
+    return false;
+  }
   return x->deserialize(source);
 }
 
@@ -247,10 +247,15 @@ bool inspect(detail::legacy_deserializer& source, value_index_ptr& x) {
   return true;
 }
 
+bool inspect(caf::binary_serializer& source, value_index_ptr& x) {
+  // todo fix
+  return false;
+}
+
 vast::chunk_ptr chunkify(const value_index_ptr& idx) {
-  std::vector<char> buf;
+  caf::byte_buffer buf;
   caf::binary_serializer sink{nullptr, buf};
-  auto error = sink(idx);
+  auto error = sink.apply(idx);
   if (error)
     return nullptr;
   return chunk::make(std::move(buf));

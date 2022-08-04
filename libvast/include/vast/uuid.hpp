@@ -15,7 +15,7 @@
 
 #include <caf/error.hpp>
 #include <caf/expected.hpp>
-#include <caf/meta/hex_formatted.hpp>
+// #include <caf/meta/hex_formatted.hpp>
 #include <fmt/format.h>
 
 #include <array>
@@ -74,7 +74,9 @@ public:
 
   template <class Inspector>
   friend auto inspect(Inspector& f, uuid& x) {
-    return f(caf::meta::hex_formatted(), x.id_);
+    // todo hex format
+    return f.apply(x.id_);
+    // return f(caf::meta::hex_formatted(), x.id_);
   }
 
 private:

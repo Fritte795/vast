@@ -27,7 +27,7 @@
 #include <caf/error.hpp>
 #include <caf/intrusive_cow_ptr.hpp>
 #include <caf/make_counted.hpp>
-#include <caf/meta/omittable.hpp>
+// #include <caf/meta/omittable.hpp>
 #include <caf/none.hpp>
 #include <caf/optional.hpp>
 #include <caf/ref_counted.hpp>
@@ -52,7 +52,8 @@ struct legacy_attribute : detail::totally_ordered<legacy_attribute> {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, legacy_attribute& a) {
-    return f(a.key, a.value);
+    return f.apply(a.key) && f.apply(a.value);
+    // return f(a.key, a.value);
   }
 
   std::string key;
@@ -228,9 +229,13 @@ public:
   /// @endcond
   template <class Inspector>
   friend auto inspect(Inspector& f, legacy_abstract_type& x) {
-    return f(caf::meta::type_name("vast.abstract_type"),
-             caf::meta::omittable_if_empty(), x.name_,
-             caf::meta::omittable_if_empty(), x.attributes_);
+    // return f(caf::meta::type_name("vast.abstract_type"),
+    //          caf::meta::omittable_if_empty(), x.name_,
+    //          caf::meta::omittable_if_empty(), x.attributes_);
+
+    return f.object(x).fields(f.field("name", x.name_),
+                              f.field("attributes", x.attributes_));
+    // todo ommit of empty
   }
 
   friend auto inspect(caf::binary_deserializer&, legacy_abstract_type&)
@@ -365,9 +370,13 @@ public:
                                                      "type");
     }
     VAST_ASSERT(name != nullptr);
-    return f(caf::meta::type_name(name), type_id<Derived>(),
-             caf::meta::omittable_if_empty(), x.name_,
-             caf::meta::omittable_if_empty(), x.attributes_);
+    // return f(caf::meta::type_name(name), type_id<Derived>(),
+    //          caf::meta::omittable_if_empty(), x.name_,
+    //          caf::meta::omittable_if_empty(), x.attributes_);
+
+    return f.object(x).fields(f.field("name", x.name_),
+                              f.field("attributes", x.attributes_));
+    // todod fix
   }
 
 protected:
@@ -430,8 +439,10 @@ struct legacy_nested_type : legacy_recursive_type<Derived> {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, Derived& x) {
-    return f(caf::meta::type_name("vast.nested_type"), super::upcast(x),
-             x.value_type);
+    // todo nested
+    return f.object(x).fields(f.field("vast.nested_type", super::upcast(x)));
+    // return f(caf::meta::type_name("vast.nested_type"), super::upcast(x),
+    //          x.value_type);
   }
 
   [[nodiscard]] bool equals(const legacy_abstract_type& other) const final {
@@ -504,8 +515,14 @@ struct legacy_enumeration_type final
 
   template <class Inspector>
   friend auto inspect(Inspector& f, legacy_enumeration_type& x) {
-    return f(caf::meta::type_name("vast.enumeration_type"), super::upcast(x),
-             caf::meta::omittable_if_empty(), x.fields);
+    // return f(caf::meta::type_name("vast.enumeration_type"), super::upcast(x),
+    //          caf::meta::omittable_if_empty(), x.fields);
+
+    return f.object(x).fields(f.field("vast.enumeration_type",
+                                      super::upcast(x)),
+                              f.field("fields", x.fields));
+
+    // todo fix ommit
   }
 
   bool equals(const legacy_abstract_type& other) const final {
@@ -541,8 +558,11 @@ struct legacy_map_type final : legacy_recursive_type<legacy_map_type> {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, legacy_map_type& x) {
-    return f(caf::meta::type_name("vast.map_type"), super::upcast(x),
-             x.key_type, x.value_type);
+    // todo nested
+
+    return f.object(x).fields(f.field("vast.map_type", x.key_type));
+    // return f(caf::meta::type_name("vast.map_type"), super::upcast(x),
+    //  x.key_type, x.value_type);
   }
 
   bool equals(const legacy_abstract_type& other) const final {
@@ -584,7 +604,9 @@ struct record_field : detail::totally_ordered<record_field> {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, record_field& x) {
-    return f(caf::meta::type_name("vast.record_field"), x.name, x.type);
+    // todo nested
+    return f.object(x).fields(f.field("vast.record_field", x.name));
+    // return f(caf::meta::type_name("vast.record_field"), x.name, x.type);
   }
 };
 
@@ -612,7 +634,9 @@ struct legacy_record_type final : legacy_recursive_type<legacy_record_type> {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, legacy_record_type& x) {
-    return f(caf::meta::type_name("vast.record_type"), upcast(x), x.fields);
+    // todo nested
+    return f.object(x).fields(f.field("vast.record_type", upcast(x)));
+    // return f(caf::meta::type_name("vast.record_type"), upcast(x), x.fields);
   }
 
   std::vector<record_field> fields;
@@ -746,7 +770,9 @@ auto make_inspect_fun() {
   using fun = typename Inspector::result_type (*)(Inspector&, legacy_type&);
   auto lambda = [](Inspector& g, legacy_type& ref) {
     T tmp;
-    auto res = g(caf::meta::type_name("vast.type"), tmp);
+    // auto res = g(caf::meta::type_name("vast.type"), tmp);
+
+    auto res = g.object(tmp).fields(g.field("vast.type", tmp));
     ref = std::move(tmp);
     return res;
   };
@@ -829,9 +855,14 @@ template <class Inspector>
 auto inspect(Inspector& f, legacy_type& x) {
   // We use a single byte for the type index on the wire.
   auto type_tag = x ? static_cast<type_id_type>(x->index()) : invalid_type_id;
-  legacy_type::inspect_helper helper{type_tag, x};
-  return f(caf::meta::type_name("vast.type"), caf::meta::omittable(), type_tag,
-           helper);
+  // legacy_type::inspect_helper helper{type_tag, x};
+  // return f(caf::meta::type_name("vast.type"), caf::meta::omittable(),
+  // type_tag,
+  //          helper);
+
+  return f.object(x).fields(f.field("vast.type", type_tag));
+
+  // todo fix inspect_helper
 }
 
 auto inspect(caf::binary_deserializer& f, legacy_type& x) = delete;

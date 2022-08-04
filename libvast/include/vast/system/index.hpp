@@ -10,6 +10,7 @@
 
 #include "vast/fwd.hpp"
 
+#include "vast/detail/inspection_common.hpp"
 #include "vast/detail/lru_cache.hpp"
 #include "vast/detail/stable_set.hpp"
 #include "vast/fbs/index.hpp"
@@ -27,8 +28,6 @@
 #include <caf/actor.hpp>
 #include <caf/behavior.hpp>
 #include <caf/event_based_actor.hpp>
-#include <caf/meta/omittable_if_empty.hpp>
-#include <caf/meta/type_name.hpp>
 #include <caf/typed_event_based_actor.hpp>
 #include <caf/typed_response_promise.hpp>
 
@@ -102,8 +101,9 @@ struct active_partition_info {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, active_partition_info& x) {
-    return f(caf::meta::type_name("active_partition_info"), x.actor,
-             x.stream_slot, x.capacity, x.id, x.spawn_time);
+    f.object(x).pretty_name("active_partition_info");
+    return detail::inspect(x.actor, x.stream_slot, x.capacity, x.id,
+                           x.spawn_time);
   }
 };
 

@@ -62,8 +62,8 @@ get_bytesize(caf::settings opts, std::string_view key, uint64_t defval) {
   // as a workaround.
   size_t result = 0;
   caf::put_missing(opts, key, defval);
-  if (caf::holds_alternative<size_t>(opts, key)) {
-    result = caf::get<size_t>(opts, key);
+  if (caf::holds_alternative<int64_t>(opts, key)) {
+    result = caf::get<int64_t>(opts, key);
   } else if (caf::holds_alternative<std::string>(opts, key)) {
     auto result_str = caf::get<std::string>(opts, key);
     if (!parsers::bytesize(result_str, result))

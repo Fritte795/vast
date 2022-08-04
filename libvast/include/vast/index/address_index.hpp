@@ -34,9 +34,9 @@ public:
 
   explicit address_index(vast::type t, caf::settings opts = {});
 
-  caf::error serialize(caf::serializer& sink) const override;
+  bool serialize(caf::serializer& sink) const override;
 
-  caf::error deserialize(caf::deserializer& source) override;
+  bool deserialize(caf::deserializer& source) override;
 
   bool deserialize(detail::legacy_deserializer& source) override;
 

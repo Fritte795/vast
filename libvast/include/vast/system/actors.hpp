@@ -15,6 +15,8 @@
 
 #include <caf/io/fwd.hpp>
 #include <caf/replies_to.hpp>
+#include <caf/stream.hpp>
+#include <caf/stream_slot.hpp>
 
 #include <filesystem>
 

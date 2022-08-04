@@ -435,7 +435,7 @@ caf::message rebuild_command(const invocation& inv, caf::actor_system& sys) {
     .until(done);
   if (result)
     return caf::make_message(std::move(result));
-  return caf::none;
+  return {};
 }
 
 /// An example plugin.

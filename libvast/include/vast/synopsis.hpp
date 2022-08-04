@@ -74,10 +74,10 @@ public:
   // -- serialization ----------------------------------------------------------
 
   /// Saves the contents (excluding the layout!) of this slice to `sink`.
-  virtual caf::error serialize(caf::serializer& sink) const = 0;
+  virtual bool serialize(caf::serializer& sink) const = 0;
 
   /// Loads the contents for this slice from `source`.
-  virtual caf::error deserialize(caf::deserializer& source) = 0;
+  virtual bool deserialize(caf::deserializer& source) = 0;
 
   /// Loads the contents for this slice from `source`.
   virtual bool deserialize(vast::detail::legacy_deserializer& source) = 0;
@@ -101,8 +101,8 @@ private:
 /// embed a vast.fbs.Type directly. Ideally we can make the synopsis
 /// memory-mappable just like table slices and types at the same time.
 /// @relates synopsis
-caf::error inspect(caf::serializer& sink, synopsis_ptr& ptr);
-caf::error inspect(caf::deserializer& source, synopsis_ptr& ptr);
+bool inspect(caf::serializer& sink, synopsis_ptr& ptr);
+bool inspect(caf::deserializer& source, synopsis_ptr& ptr);
 
 /// @relates synopsis
 bool inspect(vast::detail::legacy_deserializer& source, synopsis_ptr& ptr);

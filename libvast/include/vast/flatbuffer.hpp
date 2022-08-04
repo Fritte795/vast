@@ -221,22 +221,25 @@ public:
   // -- concepts --------------------------------------------------------------
 
   template <class Inspector>
-  friend auto inspect(Inspector& f, flatbuffer& x) ->
-    typename Inspector::result_type {
+  friend auto inspect(Inspector& f, flatbuffer& x) {
     // When serializing, we decompose the FlatBuffers table into the chunk it
     // lives in and the offset of the table pointer inside it, and when
     // deserializing we put it all back together.
     auto table_offset = x.chunk_ ? reinterpret_cast<const std::byte*>(x.table_)
                                      - x.chunk_->data()
                                  : 0;
-    auto load_callback = caf::meta::load_callback([&]() noexcept -> caf::error {
+    auto load_callback = [&]() noexcept -> caf::error {
       if (x.chunk_)
         x.table_
           = reinterpret_cast<const Table*>(x.chunk_->data() + table_offset);
       return caf::none;
-    });
-    return f(caf::meta::type_name(Table::GetFullyQualifiedName()), x.chunk_,
-             table_offset, std::move(load_callback));
+    };
+
+    // todo proper
+    return f.apply(x.chunk_);
+    // return f.object(x).fields(f.field())
+    // return f(caf::meta::type_name(Table::GetFullyQualifiedName()), x.chunk_,
+    //  table_offset, std::move(load_callback));
   }
 
   friend auto

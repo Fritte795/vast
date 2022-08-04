@@ -27,6 +27,9 @@
 #include "vast/time.hpp"
 #include "vast/view.hpp"
 
+#include <caf/attach_continuous_stream_source.hpp>
+#include <caf/broadcast_downstream_manager.hpp>
+#include <caf/downstream.hpp>
 #include <caf/settings.hpp>
 #include <caf/typed_event_based_actor.hpp>
 
@@ -105,7 +108,7 @@ struct accountant_state_impl {
     VAST_DEBUG("{} generated slice with {} rows", *self, slice.rows());
 
     slice_buffer.push(std::move(slice));
-    mgr->advance();
+    // mgr->advance();
   }
 
   void record_internally(const caf::actor_id actor_id, const std::string& key,
@@ -323,7 +326,8 @@ accountant(accountant_actor::stateful_pointer<accountant_state> self,
       VAST_DEBUG("{} received DOWN from {}", *self, msg.source);
     st.actor_map.erase(msg.source.id());
   });
-  self->state->mgr = self->make_continuous_source(
+  self->state->mgr = caf::attach_continuous_stream_source(
+    self,
     // init
     [](bool&) {},
     // get next element

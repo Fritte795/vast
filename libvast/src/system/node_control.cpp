@@ -18,7 +18,7 @@ namespace vast::system {
 
 caf::expected<caf::actor>
 spawn_at_node(caf::scoped_actor& self, const node_actor& node, invocation inv) {
-  caf::expected<caf::actor> result = caf::no_error;
+  caf::expected<caf::actor> result = caf::error{};
   self
     ->request(node, defaults::system::initial_request_timeout, atom::spawn_v,
               std::move(inv))

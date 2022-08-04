@@ -34,7 +34,9 @@ struct query_context {
 
     template <class Inspector>
     friend auto inspect(Inspector& f, count& x) {
-      return f(caf::meta::type_name("vast.query.count"), x.sink, x.mode);
+      //  todo nested
+      return f.object(x).fields(f.field("vast.query.count", x.sink));
+      // return f(caf::meta::type_name("vast.query.count"), x.sink, x.mode);
     }
   };
 
@@ -48,7 +50,8 @@ struct query_context {
 
     template <class Inspector>
     friend auto inspect(Inspector& f, extract& x) {
-      return f(caf::meta::type_name("vast.query.extract"), x.sink);
+      return f.object(x).fields(f.field("vast.query.extract", x.sink));
+      // return f(caf::meta::type_name("vast.query.extract"), x.sink);
     }
   };
 
@@ -94,8 +97,10 @@ struct query_context {
 
   template <class Inspector>
   friend auto inspect(Inspector& f, query_context& q) {
-    return f(caf::meta::type_name("vast.query"), q.id, q.cmd, q.expr, q.ids,
-             q.priority);
+    // todo nested
+    return f.object(q).fields(f.field("vast.query", q.id));
+    // return f(caf::meta::type_name("vast.query"), q.id, q.cmd, q.expr, q.ids,
+    //          q.priority);
   }
 
   // -- data members -----------------------------------------------------------

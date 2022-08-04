@@ -73,9 +73,8 @@ public:
   // -- CAF -------------------------------------------------------------------
 
   template <class Inspector>
-  friend auto inspect(Inspector& f, module& x) ->
-    typename Inspector::result_type {
-    return f(caf::meta::type_name("vast.schema"), x.types_);
+  friend auto inspect(Inspector& f, module& x) {
+    return f.object(x).fields(f.field("vast.schema", x.types_));
   }
 
 private:

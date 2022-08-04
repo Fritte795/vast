@@ -12,11 +12,11 @@
 
 #include "vast/aliases.hpp"
 #include "vast/command.hpp"
+#include "vast/detail/inspection_common.hpp"
 #include "vast/expression.hpp"
 
 #include <caf/deep_to_string.hpp>
 #include <caf/fwd.hpp>
-#include <caf/meta/type_name.hpp>
 #include <fmt/format.h>
 
 #include <filesystem>
@@ -45,10 +45,9 @@ struct spawn_arguments {
   }
 
   template <class Inspector>
-  friend auto inspect(Inspector& f, spawn_arguments& x) ->
-    typename Inspector::result_type {
-    return f(caf::meta::type_name("vast.system.spawn_arguments"), x.inv, x.dir,
-             x.label, x.expr);
+  friend auto inspect(Inspector& f, spawn_arguments& x) {
+    f.object(x).pretty_name("vast.system.spawn_arguments");
+    return detail::inspect(f, x.inv, x.dir, x.label, x.expr);
   }
 };
 

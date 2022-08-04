@@ -15,6 +15,8 @@
 #include <caf/type_id.hpp>
 
 #include <cstdint>
+#include <map>
+#include <string_view>
 #include <vector>
 
 #define VAST_ADD_TYPE_ID(type) CAF_ADD_TYPE_ID(vast_types, type)
@@ -73,11 +75,16 @@ struct Offset;
 
 namespace caf {
 
+class actor;
+
 template <class>
 class inbound_stream_slot;
 
 template <class, class...>
 class outbound_stream_slot;
+
+template <class T>
+class expected;
 
 namespace detail {
 
@@ -105,6 +112,7 @@ class data;
 class duration_type;
 class enumeration_type;
 class expression;
+class ewah_bitmap;
 class integer_type;
 class legacy_abstract_type;
 class legacy_type;
@@ -137,6 +145,7 @@ class pipeline_operator;
 class type;
 class uuid;
 class value_index;
+class wah_bitmap;
 
 struct attribute;
 struct augmented_partition_synopsis;
@@ -388,6 +397,7 @@ CAF_BEGIN_TYPE_ID_BLOCK(vast_types, first_vast_type_id)
   VAST_ADD_TYPE_ID((vast::invocation))
   VAST_ADD_TYPE_ID((vast::negation))
   VAST_ADD_TYPE_ID((vast::partition_info))
+  VAST_ADD_TYPE_ID((vast::partition_synopsis_pair))
   VAST_ADD_TYPE_ID((vast::pattern))
   VAST_ADD_TYPE_ID((vast::port))
   VAST_ADD_TYPE_ID((vast::port_type))
@@ -404,6 +414,12 @@ CAF_BEGIN_TYPE_ID_BLOCK(vast_types, first_vast_type_id)
   VAST_ADD_TYPE_ID((vast::type_extractor))
   VAST_ADD_TYPE_ID((vast::type_set))
   VAST_ADD_TYPE_ID((vast::uuid))
+  VAST_ADD_TYPE_ID((vast::table_slice_column))
+  VAST_ADD_TYPE_ID((vast::pipeline_ptr))
+  VAST_ADD_TYPE_ID((vast::partition_synopsis_ptr))
+  VAST_ADD_TYPE_ID((vast::wah_bitmap));
+  VAST_ADD_TYPE_ID((vast::ewah_bitmap));
+  VAST_ADD_TYPE_ID((vast::null_bitmap));
 
   // TODO: Make list, record, and map concrete typs to we don't need to do
   // these kinda things. See vast/aliases.hpp for their definitions.
@@ -420,6 +436,8 @@ CAF_BEGIN_TYPE_ID_BLOCK(vast_types, first_vast_type_id)
   VAST_ADD_TYPE_ID((vast::system::keep_original_partition))
   VAST_ADD_TYPE_ID((vast::system::status_verbosity))
   VAST_ADD_TYPE_ID((vast::system::catalog_result))
+  VAST_ADD_TYPE_ID((vast::system::accountant_config))
+  VAST_ADD_TYPE_ID((vast::system::send_initial_dbstate))
 
   VAST_ADD_TYPE_ID((std::pair<std::string, vast::data>))
   VAST_ADD_TYPE_ID((std::vector<uint32_t>))
@@ -429,13 +447,24 @@ CAF_BEGIN_TYPE_ID_BLOCK(vast_types, first_vast_type_id)
   VAST_ADD_TYPE_ID((std::vector<vast::table_slice_column>))
   VAST_ADD_TYPE_ID((std::vector<vast::uuid>))
   VAST_ADD_TYPE_ID((std::vector<vast::partition_info>))
+  VAST_ADD_TYPE_ID((std::vector<vast::augmented_partition_synopsis>))
+  VAST_ADD_TYPE_ID(
+    (std::shared_ptr<std::map<vast::uuid, vast::partition_synopsis_ptr>>))
+  VAST_ADD_TYPE_ID((std::string_view))
+  VAST_ADD_TYPE_ID((std::vector<vast::partition_synopsis_pair>))
 
   VAST_ADD_TYPE_ID((vast::detail::framed<vast::table_slice>))
   VAST_ADD_TYPE_ID((std::vector<vast::detail::framed<vast::table_slice>>))
   VAST_ADD_TYPE_ID((caf::stream<vast::detail::framed<vast::table_slice>>))
+  VAST_ADD_TYPE_ID(
+    (caf::inbound_stream_slot<vast::detail::framed<vast::table_slice>>))
 
+  VAST_ADD_TYPE_ID((caf::expected<caf::actor>))
   VAST_ADD_TYPE_ID((caf::stream<vast::table_slice>))
   VAST_ADD_TYPE_ID((caf::stream<vast::table_slice_column>))
+  VAST_ADD_TYPE_ID((caf::inbound_stream_slot<vast::table_slice>))
+  VAST_ADD_TYPE_ID((caf::inbound_stream_slot<vast::table_slice_column>))
+  VAST_ADD_TYPE_ID((caf::outbound_stream_slot<vast::table_slice>))
 
 CAF_END_TYPE_ID_BLOCK(vast_types)
 

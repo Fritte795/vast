@@ -100,32 +100,34 @@ to_config_value(const caf::config_value& value, const caf::config_option& opt) {
   // until then we have to *go back* into a string reprsentation to create
   // ambiguity (i.e., allow for parsing input as either string or atom), and
   // then come back to the config_value that matches the typing.
-  auto no_quote_stringify = detail::overload{
-    [](const auto& x) {
-      return caf::deep_to_string(x);
-    },
-    [](const std::string& x) {
-      return x;
-    },
-  };
-  auto str = caf::visit(no_quote_stringify, value);
-  auto result = opt.parse(str);
-  if (!result) {
-    // We now try to parse strings as atom using a regex, since we get
-    // recursive types like lists for free this way. A string-vs-atom type
-    // clash is the only instance we currently cannot distinguish. Everything
-    // else is a true type clash.
-    // (With CAF 0.18, this heuristic will be obsolete.)
-    str = detail::replace_all(std::move(str), "\"", "'");
-    result = opt.parse(str);
-    if (!result)
-      return caf::make_error(ec::type_clash,
-                             fmt::format( //
-                               "failed to parse config option {} as {}: {}",
-                               caf::deep_to_string(opt.full_name()),
-                               caf::deep_to_string(opt.type_name()), str));
-  }
-  return result;
+  // auto no_quote_stringify = detail::overload{
+  //   [](const auto& x) {
+  //     return caf::deep_to_string(x);
+  //   },
+  //   [](const std::string& x) {
+  //     return x;
+  //   },
+  // };
+  // auto str = caf::visit(no_quote_stringify, value);
+  // auto str = std::string{};
+  // auto result = opt.parse(str);
+  // if (!result) {
+  // We now try to parse strings as atom using a regex, since we get
+  // recursive types like lists for free this way. A string-vs-atom type
+  // clash is the only instance we currently cannot distinguish. Everything
+  // else is a true type clash.
+  // (With CAF 0.18, this heuristic will be obsolete.)
+  //   str = detail::replace_all(std::move(str), "\"", "'");
+  //   result = opt.parse(str);
+  //   if (!result)
+  //     return caf::make_error(ec::type_clash,
+  //                            fmt::format( //
+  //                              "failed to parse config option {} as {}: {}",
+  //                              caf::deep_to_string(opt.full_name()),
+  //                              caf::deep_to_string(opt.type_name()), str));
+  // }
+  // return result;
+  return {caf::error{}};
 }
 
 caf::expected<std::vector<std::filesystem::path>>

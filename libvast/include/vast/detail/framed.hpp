@@ -47,7 +47,7 @@ public:
 
   template <typename Inspector>
   friend auto inspect(Inspector& f, framed<T>& sc) {
-    return f(sc.header, sc.body);
+    return f.apply(sc.header) && f.apply(sc.body);
   }
 };
 

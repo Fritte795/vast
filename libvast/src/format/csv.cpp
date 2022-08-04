@@ -100,8 +100,7 @@ render(output_iterator& out, ForwardIterator first, ForwardIterator last) {
 }
 
 caf::error render(output_iterator& out, const view<list>& xs) {
-  render(out, xs.begin(), xs.end());
-  return caf::none;
+  return render(out, xs.begin(), xs.end());
 }
 
 caf::error render(output_iterator&, const view<map>&) {
@@ -170,17 +169,17 @@ reader::reader(const caf::settings& options, std::unique_ptr<std::istream> in)
   using defaults = vast::defaults::import::csv;
   opt_.separator = defaults::separator[0];
   auto seperator_option
-    = get_or(options, "vast.import.csv.separator", defaults::separator);
+    = get_or(options, "vast.import.csv.separator", defaults::separator.data());
   if (seperator_option.size() != 1)
     VAST_WARN("{} encountered invalid vast.import.csv.separator '{}'; must be "
               "a single character",
               detail::pretty_type_name(*this), seperator_option);
   else
     opt_.separator = seperator_option[0];
-  opt_.set_separator
-    = get_or(options, "vast.import.csv.set_separator", defaults::set_separator);
-  opt_.kvp_separator
-    = get_or(options, "vast.import.csv.kvp_separator", defaults::kvp_separator);
+  opt_.set_separator = get_or(options, "vast.import.csv.set_separator",
+                              defaults::set_separator.data());
+  opt_.kvp_separator = get_or(options, "vast.import.csv.kvp_separator",
+                              defaults::kvp_separator.data());
 }
 
 void reader::reset(std::unique_ptr<std::istream> in) {

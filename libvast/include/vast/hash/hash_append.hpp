@@ -10,11 +10,12 @@
 
 #include "vast/as_bytes.hpp"
 #include "vast/detail/bit.hpp"
+#include "vast/detail/overload.hpp"
 #include "vast/detail/type_traits.hpp"
 #include "vast/hash/uniquely_hashable.hpp"
 
 #include <caf/detail/type_traits.hpp>
-#include <caf/meta/save_callback.hpp>
+#include <caf/variant.hpp>
 
 #include <array>
 #include <chrono>
@@ -293,6 +294,19 @@ void hash_append(HashAlgorithm& h, const T0& x0, const T1& x1,
   hash_append(h, x1, xs...);
 }
 
+template <class HashAlgorithm, class... T>
+  requires(!uniquely_hashable<caf::variant<T...>, HashAlgorithm>)
+void hash_append(HashAlgorithm&, const caf::variant<T...>&) noexcept {
+  // caf::visit(
+  //   detail::overload{[&h](auto&& xs) {
+  //     hash_append(h, std::forward<decltype(xs)>(xs)); // todo change syntax
+  //     to new lambda template
+  //   },
+  //   [](caf::none_t){}}, v);
+  // if (err)
+  //   VAST_WARN("Error during caf::variant hash inspection {}", err);
+}
+
 // -- inspectable -------------------------------------------------------------
 
 namespace detail {
@@ -310,24 +324,81 @@ struct hash_inspector {
     // End of recursion.
   }
 
-  template <class F, class... Ts>
-  result_type operator()(caf::meta::save_callback_t<F> x, Ts&&... xs) const {
-    x.fun();
-    (*this)(std::forward<Ts>(xs)...);
+  // template <class F, class... Ts>
+  // result_type operator()(caf::meta::save_callback_t<F> x, Ts&&... xs) const {
+  //   x.fun();
+  //   (*this)(std::forward<Ts>(xs)...);
+  // }
+
+  // template <class T, class... Ts>
+  //   requires(caf::meta::is_annotation<T>::value)
+  // result_type operator()(T&&, Ts&&... xs) const noexcept {
+  //   (*this)(std::forward<Ts>(xs)...); // Ignore annotation.
+  // }
+
+  template <class T>
+  auto object(const T&) {
+    return object_impl{*this};
+  }
+
+  template <class T>
+  auto field(std::string_view, T& value) {
+    return field_impl{value};
+  }
+
+  template <class T>
+  bool apply(T&& value) const {
+    (*this)(std::forward<T>(value));
+    return true;
   }
 
   template <class T, class... Ts>
-    requires(caf::meta::is_annotation<T>::value)
-  result_type operator()(T&&, Ts&&... xs) const noexcept {
-    (*this)(std::forward<Ts>(xs)...); // Ignore annotation.
-  }
-
-  template <class T, class... Ts>
-    requires(!caf::meta::is_annotation<T>::value)
   result_type operator()(T&& x, Ts&&... xs) const noexcept {
-    hash_append(h_, x);
+    hash_append(h_, std::forward<T>(x));
     (*this)(std::forward<Ts>(xs)...);
   }
+
+  class object_impl {
+  public:
+    explicit object_impl(hash_inspector& self) : self_{self} {
+    }
+
+    template <class... Fields>
+    bool fields(Fields&&... fields) {
+      auto success = (fields(self_) && ...);
+      if (success && load_callback_)
+        success = load_callback_();
+      return success;
+    }
+
+    object_impl& pretty_name(std::string_view) {
+      return *this;
+    }
+
+    template <class Callback>
+    object_impl& on_load(Callback callback) {
+      load_callback_ = std::move(callback);
+      return *this;
+    }
+
+  private:
+    hash_inspector& self_;
+    std::function<bool()> load_callback_;
+  };
+
+  template <class T>
+  class field_impl {
+  public:
+    explicit field_impl(T& value) : value_{value} {
+    }
+    bool operator()(hash_inspector& f) {
+      f(value_);
+      return true;
+    }
+
+  private:
+    T& value_;
+  };
 
   HashAlgorithm& h_;
 };
@@ -335,12 +406,13 @@ struct hash_inspector {
 } // namespace detail
 
 template <class HashAlgorithm, class T>
-  requires(
-    caf::detail::is_inspectable<detail::hash_inspector<HashAlgorithm>, T>::value
-    && !uniquely_hashable<T, HashAlgorithm>)
+  requires(caf::detail::has_inspect_overload<
+             detail::hash_inspector<HashAlgorithm>, T>::value
+           && !uniquely_hashable<T, HashAlgorithm>)
 void hash_append(HashAlgorithm& h, const T& x) noexcept {
   detail::hash_inspector<HashAlgorithm> f{h};
   inspect(f, const_cast<T&>(x));
+  // todo enable
 }
 
 } // namespace vast
