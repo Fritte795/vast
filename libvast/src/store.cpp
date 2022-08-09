@@ -49,7 +49,7 @@ handle_lookup(Actor& self, const query_context& query_context,
         }
         num_hits += count_matching(slice, *tailored_expr, query_context.ids);
       }
-      self->send(count.sink, num_hits);
+      self->send(count.sink, atom::receive_v, num_hits);
       return num_hits;
     },
     [&](const query_context::extract& extract) -> caf::expected<uint64_t> {
@@ -64,7 +64,7 @@ handle_lookup(Actor& self, const query_context& query_context,
         auto final_slice = filter(slice, *tailored_expr, query_context.ids);
         if (final_slice) {
           num_hits += final_slice->rows();
-          self->send(extract.sink, *final_slice);
+          self->send(extract.sink, atom::receive_v, *final_slice);
         }
       }
       return num_hits;
@@ -128,13 +128,13 @@ system::store_actor::behavior_type default_passive_store(
         return num_hits.error();
       const auto runtime = std::chrono::steady_clock::now() - start;
       const auto id_str = fmt::to_string(query_context.id);
-      self->send(self->state.accountant,
+      self->send(self->state.accountant, atom::metrics_v,
                  fmt::format("{}.lookup.runtime", self->name()), runtime,
                  system::metrics_metadata{
                    {"query", id_str},
                    {"store-type", self->state.store_type},
                  });
-      self->send(self->state.accountant,
+      self->send(self->state.accountant, atom::metrics_v,
                  fmt::format("{}.lookup.hits", self->name()), *num_hits,
                  system::metrics_metadata{
                    {"query", id_str},
@@ -184,13 +184,13 @@ system::store_builder_actor::behavior_type default_active_store(
         return num_hits.error();
       const auto runtime = std::chrono::steady_clock::now() - start;
       const auto id_str = fmt::to_string(query_context.id);
-      self->send(self->state.accountant,
+      self->send(self->state.accountant, atom::metrics_v,
                  fmt::format("{}.lookup.runtime", self->name()), runtime,
                  system::metrics_metadata{
                    {"query", id_str},
                    {"store-type", self->state.store_type},
                  });
-      self->send(self->state.accountant,
+      self->send(self->state.accountant, atom::metrics_v,
                  fmt::format("{}.lookup.hits", self->name()), *num_hits,
                  system::metrics_metadata{
                    {"query", id_str},

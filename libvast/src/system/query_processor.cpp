@@ -46,7 +46,7 @@ query_processor::query_processor(caf::event_based_actor* self)
     },
     status_handler);
   behaviors_[await_results_until_done].assign(
-    [this](atom::done) -> caf::result<void> {
+    [this](atom::receive, atom::done) -> caf::result<void> {
       if (block_end_of_hits_)
         return caf::skip;
       partitions_.received += partitions_.scheduled;
@@ -55,8 +55,6 @@ query_processor::query_processor(caf::event_based_actor* self)
     },
     status_handler);
 }
-
-query_processor::~query_processor() = default;
 
 // -- convenience functions ----------------------------------------------------
 
@@ -77,7 +75,7 @@ bool query_processor::request_more_results() {
              "additional partitions",
              *self_, n);
   partitions_.scheduled = n;
-  self_->send(index_, query_id_, n);
+  self_->send(index_, atom::query_v, query_id_, n);
   return true;
 }
 

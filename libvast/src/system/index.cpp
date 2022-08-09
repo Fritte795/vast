@@ -764,7 +764,7 @@ void index_state::decommission_active_partition(
               {"schema", std::string{schema.name()}},
             },
           };
-          self->send(accountant, report);
+          self->send(accountant, atom::metrics_v, report);
         }
         // The catalog expects to own the partition synopsis it receives,
         // so we make a copy for the listeners.
@@ -825,7 +825,7 @@ void index_state::schedule_lookups() {
     auto immediate_completion = [&](const query_queue::entry& x) {
       for (auto qid : x.queries)
         if (auto client = pending_queries.handle_completion(qid))
-          self->send(*client, atom::done_v);
+          self->send(*client, atom::receive_v, atom::done_v);
     };
     if (next->erased) {
       VAST_DEBUG("{} skips erased partition {}", *self, next->partition);
@@ -881,7 +881,7 @@ void index_state::schedule_lookups() {
       }
       auto handle_completion = [cnt, qid, this] {
         if (auto client = pending_queries.handle_completion(qid))
-          self->send(*client, atom::done_v);
+          self->send(*client, atom::receive_v, atom::done_v);
         // 4. recursively call schedule_lookups in the done handler. ...or
         //    when all done? (5)
         // 5. decrement running_partition_lookups when all queries that
@@ -962,9 +962,9 @@ void index_state::send_report() {
        max_concurrent_partition_lookups - running_partition_lookups},
       {"scheduler.partition.current-lookups", running_partition_lookups},
     }};
-  self->send(accountant, std::move(msg));
+  self->send(accountant, atom::metrics_v, std::move(msg));
   auto r = performance_report{.data = {{{"scheduler", scheduler_measurement}}}};
-  self->send(accountant, std::move(r));
+  self->send(accountant, atom::metrics_v, std::move(r));
   scheduler_measurement = measurement{};
 }
 
@@ -1410,7 +1410,7 @@ index(index_actor::stateful_pointer<index_state> self,
             VAST_DEBUG("{} returns without result: no partitions qualify",
                        *self);
             rp.deliver(query_cursor{query_id, 0u, 0u});
-            self->send(client, atom::done_v);
+            self->send(client, atom::receive_v, atom::done_v);
             return;
           }
           auto num_candidates = detail::narrow<uint32_t>(candidates.size());
@@ -1434,7 +1434,7 @@ index(index_actor::stateful_pointer<index_state> self,
       return self->delegate(self->state.catalog, atom::candidates_v, lookup_id,
                             std::move(expr));
     },
-    [self](const uuid& query_id, uint32_t num_partitions) {
+    [self](atom::query, const uuid& query_id, uint32_t num_partitions) {
       if (auto err
           = self->state.pending_queries.activate(query_id, num_partitions))
         VAST_WARN("{} can't activate unknown query: {}", *self, err);

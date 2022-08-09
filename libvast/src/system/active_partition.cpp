@@ -581,19 +581,19 @@ active_partition_actor::behavior_type active_partition(
            query_context = std::move(query_context)](const ids& hits) mutable {
             duration runtime = std::chrono::steady_clock::now() - start;
             auto id_str = fmt::to_string(query_context.id);
-            self->send(self->state.accountant, "partition.lookup.runtime",
-                       runtime,
+            self->send(self->state.accountant, atom::metrics_v,
+                       "partition.lookup.runtime", runtime,
                        metrics_metadata{{"query", id_str},
                                         {"partition-type", "active"}});
-            self->send(self->state.accountant, "partition.lookup.hits",
-                       rank(hits),
+            self->send(self->state.accountant, atom::metrics_v,
+                       "partition.lookup.hits", rank(hits),
                        metrics_metadata{{"query", std::move(id_str)},
                                         {"partition-type", "active"}});
             // TODO: Use the first path if the expression can be evaluated
             // exactly.
             auto* count = caf::get_if<query_context::count>(&query_context.cmd);
             if (count && count->mode == query_context::count::estimate) {
-              self->send(count->sink, rank(hits));
+              self->send(count->sink, atom::receive_v, rank(hits));
               rp.deliver(rank(hits));
             } else {
               query_context.ids = hits;

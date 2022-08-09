@@ -87,11 +87,11 @@ struct fixture : fixtures::deterministic_actor_system_and_events {
       auto done = false;
       while (!done)
         self->receive(
-          [&](table_slice& slice) {
+          [&](atom::receive, table_slice& slice) {
             // test
             result += slice.rows();
           },
-          [&](atom::done) {
+          [&](atom::receive, atom::done) {
             done = true;
           },
           caf::others >>
@@ -111,7 +111,7 @@ struct fixture : fixtures::deterministic_actor_system_and_events {
     fetch(scheduled);
     while (collected < hits) {
       auto batch = std::min(hits - collected, taste_count);
-      self->send(index, query_id, batch);
+      self->send(index, atom::query_v, query_id, batch);
       run();
       fetch(batch);
     }
