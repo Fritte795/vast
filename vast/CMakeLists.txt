@@ -9,6 +9,7 @@ endif ()
 
 add_executable(vast vast.cpp)
 VASTTargetEnableTooling(vast)
+target_code_coverage(vast)
 target_link_libraries(vast PRIVATE vast::internal vast::libvast)
 VASTTargetLinkWholeArchive(vast PRIVATE vast::libvast_native_plugins)
 install(TARGETS vast DESTINATION "${CMAKE_INSTALL_BINDIR}")

@@ -84,6 +84,7 @@ include(VASTMacDependencyPaths)
 include(VASTProvideFindModule)
 include(VASTRegisterPlugin)
 include(VASTUtilities)
+include(code-coverage)
 
 # -- project configuration -----------------------------------------------------
 
