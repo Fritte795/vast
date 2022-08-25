@@ -18,14 +18,14 @@ locals {
         hostPort      = 50000
         protocol      = "tcp"
         }, {
-        containerPort = 5000
+        containerPort = 80
         hostPort      = 5000
         protocol      = "tcp"
       }],
       volumesFrom = []
       environment = [{
         name  = "HOSTNAME"
-        value = "http://localhost:5000" # TODO: can we make this dynamic?
+        value = "https://yolo.remito.space" # TODO: can we make this dynamic?
         }, {
         name  = "REDIS_FQDN"
         value = "localhost"
