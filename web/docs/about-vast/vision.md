@@ -26,7 +26,7 @@ Our conviction is that this fundamentally different approach to security
 operations center (SOC) architecture is long overdue. Conceptually, we need to
 shift away from point-to-point product integrations built on top of narrow
 custom APIs to an open *security data fabric* as the central driver of
-event-drien use cases. This fabric abstracts away the complexity of the
+event-driven use cases. This fabric abstracts away the complexity of the
 infrastructure and provides connectivity from cloud to distal on-premise
 locations, as well as modular functions that can easily be composed into use
 cases in the detection and response realm. Authorized parties join this fabric
